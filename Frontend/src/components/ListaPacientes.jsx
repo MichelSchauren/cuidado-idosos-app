@@ -1,0 +1,69 @@
+import { Phone, ChevronRight, Package, AlertTriangle, User } from "lucide-react";
+
+function ListaPacientes({ pacientes }) {
+  const estoqueAlerta = true;
+  const prescSuspensa = true;
+
+  function calcIdade(nascimento) {
+    const data = new Date();
+    const nasc = new Date(nascimento);
+
+    let idade = data.getFullYear() - nasc.getFullYear();
+    if (
+      nasc.getMonth() > data.getMonth() ||
+      (nasc.getMonth() === data.getMonth() && nasc.getDate() > data.getDate())
+    ) {
+      idade -= 1;
+    }
+    return idade;
+  }
+
+  return (
+    <div className="space-y-3">
+      {(!pacientes || pacientes.length === 0) && (
+        <div className="rounded-3xl border border-dashed border-slate-300 bg-white py-16 text-center shadow-sm">
+          <p className="text-slate-500">Nenhum paciente encontrado</p>
+        </div>
+      )}
+
+      {pacientes?.map((paciente) => (
+        <div
+          key={paciente.id}
+          className="flex items-center gap-4 rounded-3xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:shadow-md"
+        >
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-emerald-100">
+            <User className="h-6 w-6 text-emerald-700" />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="truncate text-base font-semibold text-slate-900">{paciente.nome}</h3>
+              {estoqueAlerta && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                  <Package className="h-3 w-3" /> Estoque baixo
+                </span>
+              )}
+              {prescSuspensa && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
+                  <AlertTriangle className="h-3 w-3" /> Med. suspenso
+                </span>
+              )}
+            </div>
+            <p className="mt-1 text-sm text-slate-500">
+              {calcIdade(paciente.data_nascimento)} anos · CPF {paciente.cpf}
+            </p>
+            {paciente.telefone && (
+              <p className="mt-1 flex items-center gap-1 text-xs text-slate-500">
+                <Phone className="h-3 w-3" /> {paciente.telefone}
+              </p>
+            )}
+          </div>
+
+          <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default ListaPacientes;
