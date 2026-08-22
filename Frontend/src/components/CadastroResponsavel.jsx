@@ -66,7 +66,9 @@ function CadastroResponsavel({
             onChange={(e) => setSexo(e.target.value)}
             className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
           >
-            <option value="">Selecione</option>
+            <option value="" disabled selected>
+              Selecione
+            </option>
             <option value="homem">Homem</option>
             <option value="mulher">Mulher</option>
             <option value="indefinido">Indefinido</option>
@@ -188,6 +190,22 @@ function CadastroResponsavel({
             <BotaoVisual ver={mostrarSenha} />
           </button>
         </div>
+      </div>
+      <div>
+        <label
+          htmlFor="foto-perfil"
+          className="mb-2 block text-sm font-medium text-slate-700"
+        >
+          Foto de perfil:
+        </label>
+        <input
+          type="file"
+          name="foto-perfil"
+          id="foto-perfil"
+          required
+          onChange={(e) => setFotoPerfil(e.target.value)}
+          className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+        />
       </div>
     </div>
   );
