@@ -156,6 +156,8 @@ function CadastroResponsavel({
           type="file"
           name="foto-perfil"
           id="foto-perfil"
+          required
+          onChange={(e) => setFotoPerfil(e.target.value)}
           className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
         />
       </div>
