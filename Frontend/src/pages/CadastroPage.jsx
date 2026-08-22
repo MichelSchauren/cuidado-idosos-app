@@ -15,6 +15,7 @@ function CadastroPage() {
   const [fotoPerfil, setFotoPerfil] = useState(null);
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [csenha, setCSenha] = useState("");
 
   const dataAtual = new Date();
 
@@ -22,7 +23,7 @@ function CadastroPage() {
     event.preventDefault();
 
     // Validação do formulário
-    /*const formulario = document.querySelector("form");
+    const formulario = document.querySelector("form");
     if (formulario.checkValidity() === false) {
       formulario.reportValidity();
       return;
@@ -59,10 +60,14 @@ function CadastroPage() {
     }
 
     // Validação da senha
-    if (senha.length < 5) {
+    if (senha !== csenha) {
+      alert("As senhas não coincidem. Por favor, verifique e tente novamente.");
+      return;
+    }
+    if (senha.length < 6) {
       alert("Senha inválida. A senha deve ter pelo menos 6 caracteres.");
       return;
-    }*/
+    }
 
     // Armazenar dados no banco
     try {
@@ -102,7 +107,7 @@ function CadastroPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-emerald-50 px-4 py-10 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-emerald-50 px-4 py-4 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-3xl rounded-[32px] border border-slate-200 bg-white p-8 shadow-xl sm:p-10">
         <div className="mb-6">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-600">
@@ -147,6 +152,7 @@ function CadastroPage() {
               setFotoPerfil={setFotoPerfil}
               setEmail={setEmail}
               setSenha={setSenha}
+              setCSenha={setCSenha}
             />
           ) : (
             <CadastroCuidador
@@ -159,6 +165,7 @@ function CadastroPage() {
               setFotoPerfil={setFotoPerfil}
               setEmail={setEmail}
               setSenha={setSenha}
+              setCSenha={setCSenha}
             />
           )}
 

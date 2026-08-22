@@ -1,3 +1,6 @@
+import { useState } from "react";
+import BotaoVisual from "./botaoVisual";
+
 function CadastroCuidador({
   setNome,
   setNascimento,
@@ -8,7 +11,10 @@ function CadastroCuidador({
   setFotoPerfil,
   setEmail,
   setSenha,
+  setCSenha,
 }) {
+  const [mostrarSenha, setMostrarSenha] = useState(false);
+
   return (
     <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
       <div>
@@ -152,15 +158,55 @@ function CadastroCuidador({
         >
           Senha
         </label>
-        <input
-          type="password"
-          name="senha"
-          id="senha"
-          required
-          onChange={(e) => setSenha(e.target.value)}
-          className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-          placeholder="Crie uma senha"
-        />
+        <div className="relative">
+          <input
+            type={mostrarSenha ? "text" : "password"}
+            name="senha"
+            id="senha"
+            required
+            onChange={(e) => setSenha(e.target.value)}
+            className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 pr-12 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+            placeholder="Crie uma senha"
+          />
+          <button
+            type="button"
+            onClick={() => setMostrarSenha((prev) => !prev)}
+            className="absolute inset-y-0 right-3 flex items-center text-lg"
+            aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
+            title={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
+          >
+            <BotaoVisual ver={mostrarSenha} />
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <label
+          htmlFor="csenha"
+          className="mb-2 block text-sm font-medium text-slate-700"
+        >
+          Confirmar Senha
+        </label>
+        <div className="relative">
+          <input
+            type={mostrarSenha ? "text" : "password"}
+            name="senha"
+            id="senha"
+            required
+            onChange={(e) => setCSenha(e.target.value)}
+            className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 pr-12 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+            placeholder="Crie uma senha"
+          />
+          <button
+            type="button"
+            onClick={() => setMostrarSenha((prev) => !prev)}
+            className="absolute inset-y-0 right-3 flex items-center text-lg"
+            aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
+            title={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
+          >
+            <BotaoVisual ver={mostrarSenha} />
+          </button>
+        </div>
       </div>
     </div>
   );

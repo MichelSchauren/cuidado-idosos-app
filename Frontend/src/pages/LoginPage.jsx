@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import BotaoVisual from "../components/botaoVisual";
 
 function LoginPage() {
   const navigate = useNavigate();
   const [usuario, setUsuario] = useState("");
   const [senha, setSenha] = useState("");
+  const [mostrarSenha, setMostrarSenha] = useState(false);
 
   async function validarLogin(event) {
     event.preventDefault();
@@ -35,6 +37,9 @@ function LoginPage() {
         navigate("/dashboard");
         return;
       }
+
+      if (response.status === 500)
+        return alert("Não foi possível se comunicar com o servidor.");
 
       // Se não for 200, mostra a mensagem de erro retornada pelo backend.
       const errorData = await response.json();
@@ -88,16 +93,26 @@ function LoginPage() {
             >
               Senha
             </label>
-            <input
-              type="password"
-              name="senha"
-              id="senha"
-              value={senha}
-              required
-              onChange={(e) => setSenha(e.target.value)}
-              className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-              placeholder="Digite sua senha"
-            />
+            <div className="relative">
+              <input
+                type={mostrarSenha ? "text" : "password"}
+                name="senha"
+                id="senha"
+                required
+                onChange={(e) => setSenha(e.target.value)}
+                className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 pr-12 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                placeholder="Crie uma senha"
+              />
+              <button
+                type="button"
+                onClick={() => setMostrarSenha((prev) => !prev)}
+                className="absolute inset-y-0 right-3 flex items-center text-lg"
+                aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
+                title={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
+              >
+                <BotaoVisual ver={mostrarSenha} />
+              </button>
+            </div>
           </div>
 
           <button

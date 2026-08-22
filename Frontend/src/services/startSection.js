@@ -16,15 +16,13 @@ async function startSection(navigate) {
     );
 
     if (!response.ok) {
-      alert("Sessão expirada. Faça login novamente.");
-      console.error("Error validating token:", error);
+      console.error("Sessão expirada. Error validating token:", error);
 
       localStorage.removeItem("token");
       navigate("/login");
     }
   } catch (error) {
-    console.error("Error validating token:", error);
-    alert("Sessão expirada. Faça login novamente.");
+    console.error("Sessão expirada. Error validating token:", error);
     localStorage.removeItem("token");
     navigate("/login");
   }
