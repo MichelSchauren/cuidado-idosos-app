@@ -66,12 +66,12 @@ app.post("/login", (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user.id, tipo: user.tipo_usuario }, // o que vai "dentro" do token
+      { id: user.id, login: user.login }, // o que vai "dentro" do token
       process.env.JWT_SECRET, // a chave secreta
       { expiresIn: "8h" }, // validade
     );
 
-    return res.json({ token, tipo: user.tipo_usuario });
+    return res.json({ token });
   });
 });
 
@@ -163,7 +163,23 @@ app.post("/cadastro", async (req, res) => {
   }
 });
 
+app.get("/validar-token", (req, res) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).json({ error: "Não autorizado." });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ error: "Token inválido." });
+    }
+    res.status(200).json({ message: "Acesso autorizado.", user });
+  });
+});
+
 // Rodar servidor
 app.listen(process.env.PORT, () => {
-  console.log("escutando");
+  console.log(`Servidor rodando na porta ${process.env.PORT}`);
 });

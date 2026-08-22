@@ -3,11 +3,17 @@ import { Link } from "react-router-dom";
 import ListaPacientes from "../components/ListaPacientes";
 import { useEffect } from "react";
 import { Plus, Users } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+
+import startSection from "../services/startSection";
 
 function DashboardPage() {
   const [pacientes, setPacientes] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
+    startSection(navigate);
+
     async function carregarPacientes() {
       try {
         const response = await fetch(import.meta.env.VITE_SERVER + "paciente");

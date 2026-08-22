@@ -28,6 +28,10 @@ function LoginPage() {
 
       // Se o backend responder com 200 OK, o login é válido.
       if (response.ok) {
+        const data = await response.json();
+        console.log(data);
+        localStorage.setItem("token", data.token);
+
         navigate("/dashboard");
         return;
       }

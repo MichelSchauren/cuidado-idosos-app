@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="/src/assets/logo.png" width="250px;" alt="Cuidaê Logo"/>
+  <img src="/Frontend/src/assets/logo.png" width="250px;" alt="Cuidaê Logo"/>
 </p>
 
 <p align="center">
@@ -40,6 +40,7 @@ Criar um sistema para auxiliar no cuidado e monitoramento de idosos e pessoas co
 ## ✅ Requisitos
 
 ### Requisitos funcionais
+
 - Cadastro de stakeholders (paciente, cuidador, responsável);
 - Perfil do paciente (dados de doenças, preferências, hábitos etc.);
 - Adição de figuras, voz e texto;
@@ -52,6 +53,7 @@ Criar um sistema para auxiliar no cuidado e monitoramento de idosos e pessoas co
 - Sistema de alertas por status (Verde/Amarelo/Vermelho).
 
 ### Requisitos não funcionais
+
 - Sistema deve funcionar **online**;
 - Sistema deve ser **web**;
 - Interface simples e intuitiva;
@@ -70,11 +72,12 @@ Criar um sistema para auxiliar no cuidado e monitoramento de idosos e pessoas co
 
 ## 👨‍💻 Colaboradores
 
-| Integrante | Papel |
-|---|---|
-| Michel Nathan Schauren | Bolsista |
-| Alan Eduardo Federhen | Voluntário |
+| Integrante               | Papel       |
+| ------------------------ | ----------- |
+| Michel Nathan Schauren   | Bolsista    |
+| Alan Eduardo Federhen    | Voluntário  |
 | Sandro Oliveira Dorneles | Coordenador |
 
 ##
+
 <p align="center">Desenvolvido com 💙 pelo Laboratório de Ideias — IFRS Campus Feliz</p>
