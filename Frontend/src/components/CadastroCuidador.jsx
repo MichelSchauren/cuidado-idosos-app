@@ -155,6 +155,23 @@ function CadastroCuidador({
 
       <div>
         <label
+          htmlFor="foto-perfil"
+          className="mb-2 block text-sm font-medium text-slate-700"
+        >
+          Foto de perfil:
+        </label>
+        <input
+          type="file"
+          accept="image/*"
+          name="foto_perfil"
+          id="foto-perfil"
+          onChange={(e) => setFotoPerfil(e.target.files[0] || null)}
+          className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+        />
+      </div>
+
+      <div>
+        <label
           htmlFor="senha"
           className="mb-2 block text-sm font-medium text-slate-700"
         >
@@ -209,21 +226,6 @@ function CadastroCuidador({
             <BotaoVisual ver={mostrarSenha} />
           </button>
         </div>
-      </div>
-      <div>
-        <label
-          htmlFor="foto-perfil"
-          className="mb-2 block text-sm font-medium text-slate-700"
-        >
-          Foto de perfil:
-        </label>
-        <input
-          type="file"
-          name="foto-perfil"
-          id="foto-perfil"
-          className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-        />
-        
       </div>
     </div>
   );

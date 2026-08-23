@@ -59,6 +59,18 @@ function CadastroPage() {
       return;
     }
 
+    // Validação da foto de perfil
+    if (
+      fotoPerfil &&
+      fotoPerfil.type &&
+      !fotoPerfil.type.startsWith("image/")
+    ) {
+      alert(
+        "Arquivo de foto de perfil inválido. Por favor, selecione uma imagem.",
+      );
+      return;
+    }
+
     // Validação da senha
     if (senha !== csenha) {
       alert("As senhas não coincidem. Por favor, verifique e tente novamente.");
@@ -71,23 +83,24 @@ function CadastroPage() {
 
     // Armazenar dados no banco
     try {
-      // Envia dados ao backend.
+      const dados = new FormData();
+      dados.append("login", nome);
+      dados.append("senha", senha);
+      dados.append("tipo", usuarioType);
+      dados.append("nome", nome);
+      dados.append("cpf", cpf);
+      dados.append("telefone", telefone);
+      dados.append("data_nascimento", nascimento);
+      dados.append("sexo", sexo);
+      dados.append("especializacao", especializacoes);
+      dados.append("email", email);
+      if (fotoPerfil) {
+        dados.append("foto_perfil", fotoPerfil);
+      }
+
       const response = await fetch(import.meta.env.VITE_SERVER + "cadastro", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          login: nome,
-          senha,
-          tipo: usuarioType,
-          nome,
-          cpf,
-          telefone,
-          data_nascimento: nascimento,
-          sexo,
-          especializacao: especializacoes,
-        }),
+        body: dados,
       });
 
       // Se o backend responder com 200 OK, o cadastro deu bom.

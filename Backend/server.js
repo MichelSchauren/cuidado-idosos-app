@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 
 const routes = require("./routes/usuarioRoutes");
 
@@ -8,6 +9,7 @@ const app = express();
 app.use(cors());
 // Permite que o backend receba dados JSON no corpo das requisições POST/PUT.
 app.use(express.json());
+app.use("/imagens", express.static(path.join(__dirname, "imagens")));
 app.use("/api", routes);
 
 // // Conexão com o BANCO

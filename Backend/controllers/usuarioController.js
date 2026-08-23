@@ -1,6 +1,13 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const fs = require("fs");
 const db = require("../config/db");
+
+function removerFoto(file) {
+  if (file) {
+    fs.unlink(file.path, () => {});
+  }
+}
 
 // Login
 function login(req, res) {
@@ -60,13 +67,19 @@ async function cadastrar(req, res) {
     data_nascimento,
     sexo,
     especializacao,
+    email,
   } = req.body;
+  const fotoPerfil = req.file
+    ? `/imagens/foto_usuarios/${req.file.filename}`
+    : null;
 
   if (!login || !senha || !tipo) {
+    removerFoto(req.file);
     return res.status(400).json({ error: "Informe todos os dados." });
   }
 
   if (tipo !== "responsavel" && tipo !== "cuidador") {
+    removerFoto(req.file);
     return res.status(400).json({ error: "Tipo de usuário inválido." });
   }
 
@@ -78,9 +91,10 @@ async function cadastrar(req, res) {
       if (err) return res.status(500).json({ error: err.message });
 
       const sql =
-        "INSERT INTO usuario (id, login, senha, tipo_usuario, ativo, criado_em) VALUES (DEFAULT, ?, ?, ?, 1, ?)";
-      db.query(sql, [login, hash, tipo, date], (err, data) => {
+        "INSERT INTO usuario (id, login, senha, tipo_usuario, ativo, criado_em, foto_perfil) VALUES (DEFAULT, ?, ?, ?, 1, ?, ?)";
+      db.query(sql, [login, hash, tipo, date, fotoPerfil], (err, data) => {
         if (err) {
+          removerFoto(req.file);
           return db.rollback(() => {
             if (err.code === "ER_DUP_ENTRY") {
               return res.status(409).json({ error: "Usuário já existente." });
@@ -114,6 +128,7 @@ async function cadastrar(req, res) {
 
         db.query(sql2, params, (err) => {
           if (err) {
+            removerFoto(req.file);
             return db.rollback(() =>
               res.status(500).json({ error: err.message }),
             );
@@ -121,12 +136,16 @@ async function cadastrar(req, res) {
 
           db.commit((err) => {
             if (err) {
+              removerFoto(req.file);
               return db.rollback(() =>
                 res.status(500).json({ error: err.message }),
               );
             }
 
-            res.status(201).json({ mensagem: "Usuário criado" });
+            res.status(201).json({
+              mensagem: "Usuário criado",
+              foto_perfil: fotoPerfil,
+            });
           });
         });
       });
