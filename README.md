@@ -66,6 +66,85 @@ Criar um sistema para auxiliar no cuidado e monitoramento de idosos e pessoas co
 - **Cuidador**: dados pessoais, perfil (familiar, enfermeiro etc.), turno;
 - **Medicamentos**: medicamento prescrito, dosagem, via de administração, horários, controle de estoque.
 
+## 🚀 Como executar o projeto (para devs)
+ 
+O projeto é dividido em dois diretórios: **Backend** e **Frontend**. É necessário instalar as dependências e configurar o arquivo `.env` em **ambos**.
+ 
+### Pré-requisitos
+- [Node.js](https://nodejs.org/) e npm instalados;
+- MySQL (ou compatível) rodando localmente;
+- phpMyAdmin (ou outro cliente de sua preferência, como MySQL Workbench/DBeaver) para importar o banco de dados.
+### 1. Clonar o repositório
+```bash
+git clone https://github.com/seu-usuario/cuidae.git
+cd cuidae
+```
+ 
+### 2. Instalar dependências
+ 
+**Backend:**
+```bash
+cd Backend
+npm install
+```
+ 
+**Frontend:**
+```bash
+cd ../Frontend
+npm install
+```
+ 
+### 3. Configurar as variáveis de ambiente
+ 
+Crie um arquivo `.env` em **cada** diretório (`Backend` e `Frontend`), com o seguinte conteúdo:
+ 
+**`Backend/.env`**
+```env
+HOST="localhost"
+USER="root"
+PASSWORD=""
+DATABASE="bd_cuidado_idosos"
+PORT=8081
+JWT_SECRET=(chave aleatória)
+```
+> ⚠️ Substitua `USER`, `PASSWORD` e `HOST` conforme a configuração do seu MySQL local. Gere uma `JWT_SECRET` aleatória e segura (ex.: `openssl rand -base64 32`).
+ 
+**`Frontend/.env`**
+```env
+VITE_SERVER="http://localhost:8081/api/"
+```
+ 
+### 4. Importar o banco de dados
+ 
+O arquivo `bd_cuidado_idosos.sql` está localizado no **diretório principal** do projeto.
+ 
+Usando o **phpMyAdmin**:
+1. Acesse o phpMyAdmin (geralmente em `http://localhost/phpmyadmin`);
+2. Crie um novo banco de dados chamado `bd_cuidado_idosos`;
+3. Selecione o banco criado e clique em **Importar**;
+4. Escolha o arquivo `bd_cuidado_idosos.sql` (na raiz do projeto) e confirme a importação.
+Alternativamente, via linha de comando:
+```bash
+mysql -u root -p bd_cuidado_idosos < bd_cuidado_idosos.sql
+```
+*(crie o banco antes com `CREATE DATABASE bd_cuidado_idosos;`, caso ainda não exista)*
+ 
+### 5. Rodar o projeto
+ 
+**Backend:**
+```bash
+cd Backend
+npm start
+```
+ 
+**Frontend:**
+```bash
+cd Frontend
+npm run dev
+```
+ 
+O frontend estará disponível normalmente em `http://localhost:5173` (padrão do Vite), consumindo a API em `http://localhost:8081/api/`.
+
 ## 🛠️ Status do projeto
 
 🚧 Em desenvolvimento — fase de levantamento de requisitos, pesquisa exploratória e prototipação.
