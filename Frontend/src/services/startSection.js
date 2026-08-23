@@ -3,7 +3,7 @@ async function startSection(navigate) {
 
   if (!token) {
     navigate("/login");
-    return;
+    return false;
   }
 
   try {
@@ -16,15 +16,19 @@ async function startSection(navigate) {
     );
 
     if (!response.ok) {
-      console.error("Sessão expirada. Error validating token:", error);
+      console.error("Sessão expirada. Status:", response.status);
 
       localStorage.removeItem("token");
       navigate("/login");
+      return false;
     }
+
+    return true;
   } catch (error) {
     console.error("Sessão expirada. Error validating token:", error);
     localStorage.removeItem("token");
     navigate("/login");
+    return false;
   }
 }
 

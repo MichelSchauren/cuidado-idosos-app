@@ -12,15 +12,35 @@ function DashboardPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    startSection(navigate);
-
     async function carregarPacientes() {
+      const sessaoValida = await startSection(navigate);
+      if (!sessaoValida) return;
+
+      const token = localStorage.getItem("token");
+
       try {
-        const response = await fetch(import.meta.env.VITE_SERVER + "paciente");
+        const response = await fetch(
+          import.meta.env.VITE_SERVER + "get-pacientes",
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
         const data = await response.json();
-        setPacientes(data);
+
+        if (!response.ok) {
+          throw new Error(
+            data.error || "Não foi possível carregar os pacientes.",
+          );
+        }
+
+        setPacientes(Array.isArray(data) ? data : []);
       } catch (err) {
-        console.log(err);
+        console.error(err);
+        setPacientes([]);
         alert("Erro de conexão com o servidor. Tente novamente.");
       }
     }
