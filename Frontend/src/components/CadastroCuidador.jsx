@@ -12,6 +12,7 @@ function CadastroCuidador({
   setEmail,
   setSenha,
   setCSenha,
+  dataMaximaNascimento,
 }) {
   const [mostrarSenha, setMostrarSenha] = useState(false);
 
@@ -29,6 +30,7 @@ function CadastroCuidador({
           name="nome"
           id="nome"
           required
+          minLength="3"
           onChange={(e) => setNome(e.target.value)}
           className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
           placeholder="Digite seu nome"
@@ -48,6 +50,7 @@ function CadastroCuidador({
             name="data-de-nascimento"
             id="data-de-nascimento"
             required
+            max={dataMaximaNascimento}
             onChange={(e) => setNascimento(e.target.value)}
             className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
           />

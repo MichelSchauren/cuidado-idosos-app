@@ -3,6 +3,38 @@ import { useNavigate } from "react-router-dom";
 import CadastroResponsavel from "../components/CadastroResponsavel";
 import CadastroCuidador from "../components/CadastroCuidador";
 
+function formatarDataParaInput(data) {
+  const ano = data.getFullYear();
+  const mes = String(data.getMonth() + 1).padStart(2, "0");
+  const dia = String(data.getDate()).padStart(2, "0");
+  return `${ano}-${mes}-${dia}`;
+}
+
+function nomeCompletoValido(nome) {
+  const nomeNormalizado = nome.trim().replace(/\s+/g, " ");
+  return /^[\p{L}]+(?:[ '-][\p{L}]+)*(?:\s+[\p{L}]+(?:[ '-][\p{L}]+)*)+$/u.test(
+    nomeNormalizado,
+  );
+}
+
+function maiorDeIdade(dataNascimento) {
+  const partesData = dataNascimento.split("-").map(Number);
+  if (partesData.length !== 3 || partesData.some(Number.isNaN)) return false;
+
+  const [ano, mes, dia] = partesData;
+  const nascimento = new Date(ano, mes - 1, dia);
+  const dataExiste =
+    nascimento.getFullYear() === ano &&
+    nascimento.getMonth() === mes - 1 &&
+    nascimento.getDate() === dia;
+  if (!dataExiste) return false;
+
+  const limite = new Date();
+  limite.setHours(0, 0, 0, 0);
+  limite.setFullYear(limite.getFullYear() - 18);
+  return nascimento <= limite;
+}
+
 function CadastroPage() {
   const navigate = useNavigate();
   const [usuarioType, setUsuarioType] = useState("responsavel");
@@ -17,7 +49,9 @@ function CadastroPage() {
   const [senha, setSenha] = useState("");
   const [csenha, setCSenha] = useState("");
 
-  const dataAtual = new Date();
+  const dataLimiteNascimento = new Date();
+  dataLimiteNascimento.setFullYear(dataLimiteNascimento.getFullYear() - 18);
+  const dataMaximaNascimento = formatarDataParaInput(dataLimiteNascimento);
 
   async function validarCadastro(event) {
     event.preventDefault();
@@ -30,8 +64,12 @@ function CadastroPage() {
     }
 
     // Validação da idade mínima de 18 anos
-    const dataNascimento = new Date(nascimento);
-    if (dataAtual.getFullYear() - dataNascimento.getFullYear() < 18) {
+    if (!nomeCompletoValido(nome)) {
+      alert("Informe seu nome completo, com nome e sobrenome.");
+      return;
+    }
+
+    if (!maiorDeIdade(nascimento)) {
       alert("Você deve ter pelo menos 18 anos para se cadastrar.");
       return;
     }
@@ -166,6 +204,7 @@ function CadastroPage() {
               setEmail={setEmail}
               setSenha={setSenha}
               setCSenha={setCSenha}
+              dataMaximaNascimento={dataMaximaNascimento}
             />
           ) : (
             <CadastroCuidador
@@ -179,6 +218,7 @@ function CadastroPage() {
               setEmail={setEmail}
               setSenha={setSenha}
               setCSenha={setCSenha}
+              dataMaximaNascimento={dataMaximaNascimento}
             />
           )}
 

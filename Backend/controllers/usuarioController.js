@@ -9,6 +9,34 @@ function removerFoto(file) {
   }
 }
 
+function nomeCompletoValido(nome) {
+  const nomeNormalizado =
+    typeof nome === "string" ? nome.trim().replace(/\s+/g, " ") : "";
+  return /^[\p{L}]+(?:[ '-][\p{L}]+)*(?:\s+[\p{L}]+(?:[ '-][\p{L}]+)*)+$/u.test(
+    nomeNormalizado,
+  );
+}
+
+function maiorDeIdade(dataNascimento) {
+  if (typeof dataNascimento !== "string") return false;
+
+  const partesData = dataNascimento.split("-").map(Number);
+  if (partesData.length !== 3 || partesData.some(Number.isNaN)) return false;
+
+  const [ano, mes, dia] = partesData;
+  const nascimento = new Date(ano, mes - 1, dia);
+  const dataExiste =
+    nascimento.getFullYear() === ano &&
+    nascimento.getMonth() === mes - 1 &&
+    nascimento.getDate() === dia;
+  if (!dataExiste) return false;
+
+  const limite = new Date();
+  limite.setHours(0, 0, 0, 0);
+  limite.setFullYear(limite.getFullYear() - 18);
+  return nascimento <= limite;
+}
+
 // Login
 function login(req, res) {
   // Recebe login e senha do frontend.
@@ -83,6 +111,16 @@ async function cadastrar(req, res) {
     return res.status(400).json({ error: "Tipo de usuário inválido." });
   }
 
+  if (!nomeCompletoValido(nome)) {
+    removerFoto(req.file);
+    return res.status(400).json({ error: "Informe nome e sobrenome." });
+  }
+
+  if (!maiorDeIdade(data_nascimento)) {
+    removerFoto(req.file);
+    return res.status(400).json({ error: "Cadastro permitido apenas para maiores de 18 anos." });
+  }
+
   try {
     const hash = await bcrypt.hash(senha, 10); // incriptar senha
     const date = new Date();
@@ -107,7 +145,7 @@ async function cadastrar(req, res) {
         const sql2 =
           tipo === "responsavel"
             ? "INSERT INTO responsavel (id, usuario_id, nome, cpf, telefone, data_nascimento) VALUES (DEFAULT, ?, ?, ?, ?, ?)"
-            : "INSERT INTO cuidador (id, usuario_id, nome, sexo, telefone, cpf, expecializacao) VALUES (DEFAULT, ?, ?, ?, ?, ?, ?)";
+            : "INSERT INTO cuidador (id, usuario_id, nome, sexo, telefone, cpf, data_nascimento, especializacao) VALUES (DEFAULT, ?, ?, ?, ?, ?, ?, ?)";
         const params =
           tipo === "responsavel"
             ? [
@@ -123,6 +161,7 @@ async function cadastrar(req, res) {
                 sexo || null,
                 telefone || null,
                 cpf || null,
+                data_nascimento || null,
                 especializacao || null,
               ];
 
