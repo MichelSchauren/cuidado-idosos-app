@@ -247,8 +247,30 @@ function getPacientes(req, res) {
   );
 }
 
+function getPerfil(req, res) {
+  const sql = `
+    SELECT u.login, u.foto_perfil, COALESCE(r.nome, c.nome) AS nome
+    FROM usuario u
+    LEFT JOIN responsavel r ON r.usuario_id = u.id
+    LEFT JOIN cuidador c ON c.usuario_id = u.id
+    WHERE u.id = ?`;
+
+  db.query(sql, [req.user?.id], (err, data) => {
+    if (err) {
+      return res.status(500).json({ error: "Erro interno do servidor." });
+    }
+
+    if (!data || data.length === 0) {
+      return res.status(404).json({ error: "Perfil não encontrado." });
+    }
+
+    return res.json(data[0]);
+  });
+}
+
 module.exports = {
   login,
   cadastrar,
   getPacientes,
+  getPerfil,
 };

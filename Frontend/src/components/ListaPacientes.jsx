@@ -19,7 +19,7 @@ function ListaPacientes({ pacientes }) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="mx-auto max-w-4xl space-y-2 px-4 py-5 sm:px-6">
       {(!pacientes || pacientes.length === 0) && (
         <div className="rounded-3xl border border-dashed border-slate-300 bg-white py-16 text-center shadow-sm">
           <p className="text-slate-500">Nenhum paciente encontrado</p>
@@ -29,10 +29,10 @@ function ListaPacientes({ pacientes }) {
       {pacientes?.map((paciente) => (
         <div
           key={paciente.id}
-          className="flex items-center gap-4 rounded-3xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:shadow-md"
+          className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 text-left shadow-sm transition hover:shadow-md sm:p-4"
         >
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-emerald-100">
-            <User className="h-6 w-6 text-emerald-700" />
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-100">
+            <User className="h-5 w-5 text-emerald-700" />
           </div>
 
           <div className="min-w-0 flex-1">

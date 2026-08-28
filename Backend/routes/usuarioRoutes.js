@@ -14,6 +14,7 @@ router.get("/validar-token", verificarToken, (req, res) => {
   res.status(200).json({ message: "Acesso autorizado.", user: req.user });
 });
 
+router.get("/perfil", verificarToken, usuarioController.getPerfil);
 router.get("/get-pacientes", verificarToken, usuarioController.getPacientes);
 
 module.exports = router;
