@@ -3,7 +3,9 @@ import BotaoVisual from "./botaoVisual";
 
 function CadastroCuidador({
   setNome,
+  setLogin,
   setNascimento,
+  sexo,
   setSexo,
   setCpf,
   setTelefone,
@@ -17,7 +19,7 @@ function CadastroCuidador({
   const [mostrarSenha, setMostrarSenha] = useState(false);
 
   return (
-    <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+    <div className="grid grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-2 lg:grid-cols-3">
       <div>
         <label
           htmlFor="nome"
@@ -37,87 +39,105 @@ function CadastroCuidador({
         />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label
-            htmlFor="data-de-nascimento"
-            className="mb-2 block text-sm font-medium text-slate-700"
-          >
-            Data de nascimento
-          </label>
-          <input
-            type="date"
-            name="data-de-nascimento"
-            id="data-de-nascimento"
-            required
-            max={dataMaximaNascimento}
-            onChange={(e) => setNascimento(e.target.value)}
-            className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-          />
-        </div>
-
-        <div>
-          <label
-            htmlFor="sexo"
-            className="mb-2 block text-sm font-medium text-slate-700"
-          >
-            Sexo
-          </label>
-          <select
-            name="sexo"
-            id="sexo"
-            required
-            onChange={(e) => setSexo(e.target.value)}
-            className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-          >
-            <option value="" disabled selected>
-              Selecione
-            </option>
-            <option value="homem">Homem</option>
-            <option value="mulher">Mulher</option>
-            <option value="indefinido">Indefinido</option>
-          </select>
-        </div>
+      <div>
+        <label
+          htmlFor="login"
+          className="mb-2 block text-sm font-medium text-slate-700"
+        >
+          Nome de usuário
+        </label>
+        <input
+          type="text"
+          name="login"
+          id="login"
+          required
+          minLength="3"
+          maxLength="50"
+          autoComplete="username"
+          onChange={(e) => setLogin(e.target.value)}
+          className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+          placeholder="Escolha seu usuário"
+        />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label
-            htmlFor="CPF"
-            className="mb-2 block text-sm font-medium text-slate-700"
-          >
-            CPF
-          </label>
-          <input
-            type="text"
-            name="CPF"
-            id="CPF"
-            maxLength="11"
-            required
-            onChange={(e) => setCpf(e.target.value)}
-            className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-            placeholder="Somente números"
-          />
-        </div>
+      <div>
+        <label
+          htmlFor="data-de-nascimento"
+          className="mb-2 block text-sm font-medium text-slate-700"
+        >
+          Data de nascimento
+        </label>
+        <input
+          type="date"
+          name="data-de-nascimento"
+          id="data-de-nascimento"
+          required
+          max={dataMaximaNascimento}
+          onChange={(e) => setNascimento(e.target.value)}
+          className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+        />
+      </div>
 
-        <div>
-          <label
-            htmlFor="numero-telefone"
-            className="mb-2 block text-sm font-medium text-slate-700"
-          >
-            Telefone
-          </label>
-          <input
-            type="tel"
-            name="numero-telefone"
-            id="numero-telefone"
-            maxLength="15"
-            required
-            onChange={(e) => setTelefone(e.target.value)}
-            className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-            placeholder="(00) 00000-0000"
-          />
-        </div>
+      <div>
+        <label
+          htmlFor="sexo"
+          className="mb-2 block text-sm font-medium text-slate-700"
+        >
+          Sexo
+        </label>
+        <select
+          name="sexo"
+          id="sexo"
+          required
+          value={sexo}
+          onChange={(e) => setSexo(e.target.value)}
+          className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+        >
+          <option value="" disabled>
+            Selecione
+          </option>
+          <option value="M">Homem</option>
+          <option value="F">Mulher</option>
+          <option value="Outro">Outro</option>
+        </select>
+      </div>
+
+      <div>
+        <label
+          htmlFor="CPF"
+          className="mb-2 block text-sm font-medium text-slate-700"
+        >
+          CPF
+        </label>
+        <input
+          type="text"
+          name="CPF"
+          id="CPF"
+          maxLength="11"
+          required
+          onChange={(e) => setCpf(e.target.value)}
+          className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+          placeholder="Somente números"
+        />
+      </div>
+
+      <div>
+        <label
+          htmlFor="numero-telefone"
+          className="mb-2 block text-sm font-medium text-slate-700"
+        >
+          Telefone
+        </label>
+        <input
+          type="tel"
+          name="numero-telefone"
+          id="numero-telefone"
+          maxLength="15"
+          required
+          onChange={(e) => setTelefone(e.target.value)}
+          className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+          placeholder="(00) 00000-0000"
+        />
       </div>
 
       <div>
@@ -183,8 +203,8 @@ function CadastroCuidador({
         <div className="relative">
           <input
             type={mostrarSenha ? "text" : "password"}
-            name="senha"
-            id="senha"
+            name="csenha"
+            id="csenha"
             required
             onChange={(e) => setSenha(e.target.value)}
             className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 pr-12 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"

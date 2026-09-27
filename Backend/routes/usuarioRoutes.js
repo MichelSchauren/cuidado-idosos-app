@@ -15,6 +15,7 @@ router.get("/validar-token", verificarToken, (req, res) => {
 });
 
 router.get("/perfil", verificarToken, usuarioController.getPerfil);
+router.put("/perfil", verificarToken, usuarioController.atualizarPerfil);
 router.get("/get-pacientes", verificarToken, usuarioController.getPacientes);
 router.put("/alterar-senha", verificarToken, usuarioController.alterarSenha);
 

@@ -4,7 +4,7 @@ import BotaoVisual from "../components/botaoVisual";
 
 function LoginPage() {
   const navigate = useNavigate();
-  const [usuario, setUsuario] = useState("");
+  const [identificador, setIdentificador] = useState("");
   const [senha, setSenha] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
 
@@ -25,7 +25,7 @@ function LoginPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ login: usuario, senha }),
+        body: JSON.stringify({ login: identificador, senha }),
       });
 
       // Se o backend responder com 200 OK, o login é válido.
@@ -68,20 +68,21 @@ function LoginPage() {
         <form onSubmit={validarLogin} className="space-y-4">
           <div>
             <label
-              htmlFor="usuario"
+              htmlFor="identificador"
               className="mb-2 block text-sm font-medium text-slate-700"
             >
-              Usuário
+              Usuário ou e-mail
             </label>
             <input
               type="text"
-              name="usuario"
-              id="usuario"
-              value={usuario}
+              name="identificador"
+              id="identificador"
+              autoComplete="username"
+              value={identificador}
               required
-              onChange={(e) => setUsuario(e.target.value)}
+              onChange={(e) => setIdentificador(e.target.value)}
               className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-              placeholder="Digite seu usuário"
+              placeholder="Digite seu usuário ou e-mail"
             />
           </div>
 

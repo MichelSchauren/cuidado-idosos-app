@@ -39,49 +39,55 @@ function maiorDeIdade(dataNascimento) {
 
 // Login
 function login(req, res) {
-  // Recebe login e senha do frontend.
-  const { login, senha } = req.body;
+  const identificador = req.body.login || req.body.email;
+  const { senha } = req.body;
 
-  // Verifica se os campos foram enviados.
-  if (!login || !senha) {
+  if (!identificador || !senha) {
     return res.status(400).json({ error: "Informe login e senha." });
   }
 
-  // Busca no banco o usuário com o devido login
-  const sql =
-    "SELECT id, login, senha, tipo_usuario, ativo FROM usuario WHERE login = ?";
-  db.query(sql, [login], async (err, data) => {
-    if (err) return res.status(500).json({ error: err.message });
+  const sql = `
+    SELECT id, login, senha, tipo_usuario, ativo
+    FROM usuario
+    WHERE login = ? OR email = ?
+    ORDER BY (login = ?) DESC
+    LIMIT 1`;
+  db.query(
+    sql,
+    [identificador, identificador, identificador],
+    async (err, data) => {
+      if (err) return res.status(500).json({ error: err.message });
 
-    // Se não encontrou nenhum registro
-    if (!data || data.length === 0) {
-      return res.status(401).json({ error: "Usuário ou senha inválidos." });
-    }
+      // Se não encontrou nenhum registro
+      if (!data || data.length === 0) {
+        return res.status(401).json({ error: "Usuário ou senha inválidos." });
+      }
 
-    const user = data[0];
-    // Verifica se a senha está correta (senha com hash)
-    const passwordMatches = await bcrypt.compare(senha, user.senha);
-    if (!passwordMatches) {
-      return res.status(401).json({ error: "Usuário ou senha inválidos." });
-    }
+      const user = data[0];
+      // Verifica se a senha está correta (senha com hash)
+      const passwordMatches = await bcrypt.compare(senha, user.senha);
+      if (!passwordMatches) {
+        return res.status(401).json({ error: "Usuário ou senha inválidos." });
+      }
 
-    // Verifica se o usuário está ativo.
-    if (user.ativo === 0) {
-      return res.status(403).json({ error: "Usuário inativo." });
-    }
+      // Verifica se o usuário está ativo.
+      if (user.ativo === 0) {
+        return res.status(403).json({ error: "Usuário inativo." });
+      }
 
-    const token = jwt.sign(
-      {
-        id: user.id,
-        login: user.login,
-        tipo_usuario: user.tipo_usuario,
-      },
-      process.env.JWT_SECRET, // a chave secreta
-      { expiresIn: "8h" }, // validade
-    );
+      const token = jwt.sign(
+        {
+          id: user.id,
+          login: user.login,
+          tipo_usuario: user.tipo_usuario,
+        },
+        process.env.JWT_SECRET, // a chave secreta
+        { expiresIn: "8h" }, // validade
+      );
 
-    return res.json({ token });
-  });
+      return res.json({ token });
+    },
+  );
 }
 
 async function cadastrar(req, res) {
@@ -101,7 +107,10 @@ async function cadastrar(req, res) {
     ? `/imagens/foto_usuarios/${req.file.filename}`
     : null;
 
-  if (!login || !senha || !email || !tipo) {
+  const loginNormalizado = typeof login === "string" ? login.trim() : "";
+  const emailNormalizado = typeof email === "string" ? email.trim() : "";
+
+  if (!loginNormalizado || !senha || !emailNormalizado || !tipo) {
     removerFoto(req.file);
     return res.status(400).json({ error: "Informe todos os dados." });
   }
@@ -134,13 +143,15 @@ async function cadastrar(req, res) {
         "INSERT INTO usuario (id, login, senha, email, tipo_usuario, ativo, criado_em, foto_perfil) VALUES (DEFAULT, ?, ?, ?, ?, 1, ?, ?)";
       db.query(
         sql,
-        [login, hash, email, tipo, date, fotoPerfil],
+        [loginNormalizado, hash, emailNormalizado, tipo, date, fotoPerfil],
         (err, data) => {
           if (err) {
             removerFoto(req.file);
             return db.rollback(() => {
               if (err.code === "ER_DUP_ENTRY") {
-                return res.status(409).json({ error: "Usuário já existente." });
+                return res
+                  .status(409)
+                  .json({ error: "Usuário ou e-mail já cadastrado." });
               }
               return res.status(500).json({ error: err.message });
             });
@@ -149,7 +160,7 @@ async function cadastrar(req, res) {
           const userId = data.insertId;
           const sql2 =
             tipo === "responsavel"
-              ? "INSERT INTO responsavel (id, usuario_id, nome, cpf, telefone, data_nascimento) VALUES (DEFAULT, ?, ?, ?, ?, ?)"
+              ? "INSERT INTO responsavel (id, usuario_id, nome, cpf, telefone, data_nascimento, sexo) VALUES (DEFAULT, ?, ?, ?, ?, ?, ?)"
               : "INSERT INTO cuidador (id, usuario_id, nome, sexo, telefone, cpf, data_nascimento, especializacao) VALUES (DEFAULT, ?, ?, ?, ?, ?, ?, ?)";
           const params =
             tipo === "responsavel"
@@ -159,6 +170,7 @@ async function cadastrar(req, res) {
                   cpf || null,
                   telefone || null,
                   data_nascimento || null,
+                  sexo || null,
                 ]
               : [
                   userId,
@@ -256,7 +268,12 @@ function getPacientes(req, res) {
 
 function getPerfil(req, res) {
   const sql = `
-    SELECT u.id, u.login, u.foto_perfil, COALESCE(r.nome, c.nome) AS nome
+    SELECT u.id, u.login, u.email, u.criado_em, u.foto_perfil,
+	  COALESCE(r.nome, c.nome) as nome,
+    COALESCE(r.cpf, c.cpf) as cpf,
+    COALESCE(r.telefone, c.telefone) as telefone,
+    COALESCE(r.data_nascimento, c.data_nascimento) as data_nascimento,
+    COALESCE(r.sexo, c.sexo) as sexo
     FROM usuario u
     LEFT JOIN responsavel r ON r.usuario_id = u.id
     LEFT JOIN cuidador c ON c.usuario_id = u.id
@@ -273,6 +290,83 @@ function getPerfil(req, res) {
 
     return res.json(data[0]);
   });
+}
+
+function atualizarPerfil(req, res) {
+  const userId = req.user?.id;
+  const { nome, email, cpf, telefone, data_nascimento, sexo } = req.body;
+  const dadosObrigatorios = [nome, email, cpf, telefone, data_nascimento, sexo];
+
+  if (
+    !userId ||
+    dadosObrigatorios.some(
+      (valor) => typeof valor !== "string" || !valor.trim(),
+    )
+  ) {
+    return res.status(400).json({ error: "Informe todos os dados do perfil." });
+  }
+
+  if (!nomeCompletoValido(nome)) {
+    return res.status(400).json({ error: "Informe nome e sobrenome." });
+  }
+
+  if (!["M", "F", "Outro"].includes(sexo)) {
+    return res
+      .status(400)
+      .json({ error: "Selecione uma opção de sexo válida." });
+  }
+
+  db.query(
+    "SELECT tipo_usuario FROM usuario WHERE id = ?",
+    [userId],
+    (err, usuarios) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (!usuarios || usuarios.length === 0) {
+        return res.status(404).json({ error: "Perfil não encontrado." });
+      }
+
+      const tabelaPerfil = {
+        responsavel: "responsavel",
+        cuidador: "cuidador",
+      }[usuarios[0].tipo_usuario];
+
+      if (!tabelaPerfil) {
+        return res.status(400).json({ error: "Tipo de usuário inválido." });
+      }
+
+      const sql = `
+        UPDATE usuario u
+        JOIN ${tabelaPerfil} p ON p.usuario_id = u.id
+        SET u.email = ?, p.nome = ?, p.cpf = ?, p.telefone = ?,
+            p.data_nascimento = ?, p.sexo = ?
+        WHERE u.id = ?`;
+
+      db.query(
+        sql,
+        [
+          email.trim(),
+          nome.trim(),
+          cpf.trim(),
+          telefone.trim(),
+          data_nascimento,
+          sexo,
+          userId,
+        ],
+        (updateError) => {
+          if (updateError) {
+            if (updateError.code === "ER_DUP_ENTRY") {
+              return res
+                .status(409)
+                .json({ error: "Este e-mail já está cadastrado." });
+            }
+            return res.status(500).json({ error: updateError.message });
+          }
+
+          return res.json({ message: "Perfil atualizado com sucesso." });
+        },
+      );
+    },
+  );
 }
 
 // Altera a senha atual substituindo por uma nova
@@ -317,5 +411,6 @@ module.exports = {
   cadastrar,
   getPacientes,
   getPerfil,
+  atualizarPerfil,
   alterarSenha,
 };

@@ -136,6 +136,7 @@ INSERT INTO `responsavel_paciente` (`id`, `responsavel_id`, `paciente_id`, `grau
 CREATE TABLE `usuario` (
   `id` bigint(20) NOT NULL,
   `login` varchar(50) NOT NULL,
+  `email` varchar(255) DEFAULT NULL,
   `senha` varchar(255) NOT NULL,
   `tipo_usuario` enum('cuidador','responsavel') NOT NULL,
   `ativo` tinyint(1) DEFAULT 1,
@@ -198,7 +199,8 @@ ALTER TABLE `responsavel_paciente`
 --
 ALTER TABLE `usuario`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `login` (`login`);
+  ADD UNIQUE KEY `login` (`login`),
+  ADD UNIQUE KEY `email` (`email`);
 
 --
 -- AUTO_INCREMENT para tabelas despejadas

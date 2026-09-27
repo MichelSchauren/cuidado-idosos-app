@@ -19,6 +19,7 @@ function PerfilUsuario() {
   const navigate = useNavigate();
   const [perfil, setPerfil] = useState({
     id: null,
+    login: "",
     nome: "",
     email: "",
     cpf: "",
@@ -26,6 +27,7 @@ function PerfilUsuario() {
     data_nascimento: "",
     sexo: "",
     foto_perfil: "",
+    criado_em: "",
   });
   const [foto, setFoto] = useState(null);
   const [fotoPreview, setFotoPreview] = useState("");
@@ -92,15 +94,39 @@ function PerfilUsuario() {
     setSalvo(false);
   }
 
-  function salvarPerfil(event) {
+  async function salvarPerfil(event) {
     event.preventDefault();
 
     setSalvando(true);
-    window.setTimeout(() => {
-      setSalvando(false);
+    try {
+      const response = await fetch(import.meta.env.VITE_SERVER + "perfil", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          nome: perfil.nome,
+          email: perfil.email,
+          cpf: perfil.cpf,
+          telefone: perfil.telefone,
+          data_nascimento: String(perfil.data_nascimento || "").slice(0, 10),
+          sexo: perfil.sexo,
+        }),
+      });
+
+      if (!response.ok) {
+        const dados = await response.json().catch(() => ({}));
+        throw new Error(dados.error || "Não foi possível salvar seu perfil.");
+      }
+
       setSalvo(true);
-      void foto;
-    }, 500);
+    } catch (error) {
+      console.error(error);
+      alert(error.message || "Erro de conexão ao salvar o perfil.");
+    } finally {
+      setSalvando(false);
+    }
   }
 
   async function salvarSenha(event) {
@@ -174,6 +200,11 @@ function PerfilUsuario() {
     (perfil.foto_perfil
       ? `${import.meta.env.VITE_SERVER.replace(/\/api\/?$/, "")}${perfil.foto_perfil}`
       : "");
+
+  console.log("PerfilUsuario renderizado. Estado atual:", {
+    perfil,
+    foto,
+  });
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_right,_#d1fae5,_transparent_34%),linear-gradient(135deg,_#f8fafc_0%,_#ecfdf5_100%)] px-4 py-6 sm:px-6 lg:px-8">
@@ -254,6 +285,16 @@ function PerfilUsuario() {
                 </CampoPerfil>
               </div>
               <div>
+                <CampoPerfil id="login" label="Nome de usuário (não editável)">
+                  <input
+                    id="login"
+                    value={perfil.login}
+                    readOnly
+                    className={`${campoClassName} cursor-not-allowed bg-slate-50 text-slate-500`}
+                  />
+                </CampoPerfil>
+              </div>
+              <div>
                 <CampoPerfil id="email" label="E-mail">
                   <input
                     id="email"
@@ -302,7 +343,7 @@ function PerfilUsuario() {
                     id="data_nascimento"
                     name="data_nascimento"
                     type="date"
-                    value={perfil.data_nascimento}
+                    value={String(perfil.data_nascimento || "").slice(0, 10)}
                     onChange={atualizarCampo}
                     required
                     className={campoClassName}
@@ -314,7 +355,7 @@ function PerfilUsuario() {
                   <select
                     id="sexo"
                     name="sexo"
-                    value={perfil.sexo}
+                    value={perfil.sexo || ""}
                     onChange={atualizarCampo}
                     required
                     className={campoClassName}
@@ -322,9 +363,9 @@ function PerfilUsuario() {
                     <option value="" disabled>
                       Selecione uma opção
                     </option>
-                    <option value="homem">Homem</option>
-                    <option value="mulher">Mulher</option>
-                    <option value="indefinido">Indefinido</option>
+                    <option value="M">Homem</option>
+                    <option value="F">Mulher</option>
+                    <option value="Outro">Outro</option>
                   </select>
                 </CampoPerfil>
               </div>

@@ -39,6 +39,7 @@ function CadastroPage() {
   const navigate = useNavigate();
   const [usuarioType, setUsuarioType] = useState("responsavel");
   const [nome, setNome] = useState("");
+  const [login, setLogin] = useState("");
   const [nascimento, setNascimento] = useState("");
   const [sexo, setSexo] = useState("");
   const [cpf, setCpf] = useState("");
@@ -122,7 +123,7 @@ function CadastroPage() {
     // Armazenar dados no banco
     try {
       const dados = new FormData();
-      dados.append("login", nome);
+      dados.append("login", login.trim());
       dados.append("senha", senha);
       dados.append("tipo", usuarioType);
       dados.append("nome", nome);
@@ -159,8 +160,8 @@ function CadastroPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 to-emerald-50 px-4 py-4 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-3xl rounded-[32px] border border-slate-200 bg-white p-8 shadow-xl sm:p-10">
-        <div className="mb-6">
+      <div className="mx-auto max-w-5xl rounded-[32px] border border-slate-200 bg-white p-5 shadow-xl sm:p-8">
+        <div className="mb-5">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-600">
             Cadastro
           </p>
@@ -196,7 +197,9 @@ function CadastroPage() {
           {usuarioType === "responsavel" ? (
             <CadastroResponsavel
               setNome={setNome}
+              setLogin={setLogin}
               setNascimento={setNascimento}
+              sexo={sexo}
               setSexo={setSexo}
               setCpf={setCpf}
               setTelefone={setTelefone}
@@ -209,7 +212,9 @@ function CadastroPage() {
           ) : (
             <CadastroCuidador
               setNome={setNome}
+              setLogin={setLogin}
               setNascimento={setNascimento}
+              sexo={sexo}
               setSexo={setSexo}
               setCpf={setCpf}
               setTelefone={setTelefone}
