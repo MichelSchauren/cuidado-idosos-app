@@ -101,7 +101,7 @@ async function cadastrar(req, res) {
     ? `/imagens/foto_usuarios/${req.file.filename}`
     : null;
 
-  if (!login || !senha || !tipo) {
+  if (!login || !senha || !email || !tipo) {
     removerFoto(req.file);
     return res.status(400).json({ error: "Informe todos os dados." });
   }
@@ -118,7 +118,9 @@ async function cadastrar(req, res) {
 
   if (!maiorDeIdade(data_nascimento)) {
     removerFoto(req.file);
-    return res.status(400).json({ error: "Cadastro permitido apenas para maiores de 18 anos." });
+    return res
+      .status(400)
+      .json({ error: "Cadastro permitido apenas para maiores de 18 anos." });
   }
 
   try {
@@ -129,51 +131,46 @@ async function cadastrar(req, res) {
       if (err) return res.status(500).json({ error: err.message });
 
       const sql =
-        "INSERT INTO usuario (id, login, senha, tipo_usuario, ativo, criado_em, foto_perfil) VALUES (DEFAULT, ?, ?, ?, 1, ?, ?)";
-      db.query(sql, [login, hash, tipo, date, fotoPerfil], (err, data) => {
-        if (err) {
-          removerFoto(req.file);
-          return db.rollback(() => {
-            if (err.code === "ER_DUP_ENTRY") {
-              return res.status(409).json({ error: "Usuário já existente." });
-            }
-            return res.status(500).json({ error: err.message });
-          });
-        }
-
-        const userId = data.insertId;
-        const sql2 =
-          tipo === "responsavel"
-            ? "INSERT INTO responsavel (id, usuario_id, nome, cpf, telefone, data_nascimento) VALUES (DEFAULT, ?, ?, ?, ?, ?)"
-            : "INSERT INTO cuidador (id, usuario_id, nome, sexo, telefone, cpf, data_nascimento, especializacao) VALUES (DEFAULT, ?, ?, ?, ?, ?, ?, ?)";
-        const params =
-          tipo === "responsavel"
-            ? [
-                userId,
-                nome || null,
-                cpf || null,
-                telefone || null,
-                data_nascimento || null,
-              ]
-            : [
-                userId,
-                nome || null,
-                sexo || null,
-                telefone || null,
-                cpf || null,
-                data_nascimento || null,
-                especializacao || null,
-              ];
-
-        db.query(sql2, params, (err) => {
+        "INSERT INTO usuario (id, login, senha, email, tipo_usuario, ativo, criado_em, foto_perfil) VALUES (DEFAULT, ?, ?, ?, ?, 1, ?, ?)";
+      db.query(
+        sql,
+        [login, hash, email, tipo, date, fotoPerfil],
+        (err, data) => {
           if (err) {
             removerFoto(req.file);
-            return db.rollback(() =>
-              res.status(500).json({ error: err.message }),
-            );
+            return db.rollback(() => {
+              if (err.code === "ER_DUP_ENTRY") {
+                return res.status(409).json({ error: "Usuário já existente." });
+              }
+              return res.status(500).json({ error: err.message });
+            });
           }
 
-          db.commit((err) => {
+          const userId = data.insertId;
+          const sql2 =
+            tipo === "responsavel"
+              ? "INSERT INTO responsavel (id, usuario_id, nome, cpf, telefone, data_nascimento) VALUES (DEFAULT, ?, ?, ?, ?, ?)"
+              : "INSERT INTO cuidador (id, usuario_id, nome, sexo, telefone, cpf, data_nascimento, especializacao) VALUES (DEFAULT, ?, ?, ?, ?, ?, ?, ?)";
+          const params =
+            tipo === "responsavel"
+              ? [
+                  userId,
+                  nome || null,
+                  cpf || null,
+                  telefone || null,
+                  data_nascimento || null,
+                ]
+              : [
+                  userId,
+                  nome || null,
+                  sexo || null,
+                  telefone || null,
+                  cpf || null,
+                  data_nascimento || null,
+                  especializacao || null,
+                ];
+
+          db.query(sql2, params, (err) => {
             if (err) {
               removerFoto(req.file);
               return db.rollback(() =>
@@ -181,15 +178,25 @@ async function cadastrar(req, res) {
               );
             }
 
-            res.status(201).json({
-              mensagem: "Usuário criado",
-              foto_perfil: fotoPerfil,
+            db.commit((err) => {
+              if (err) {
+                removerFoto(req.file);
+                return db.rollback(() =>
+                  res.status(500).json({ error: err.message }),
+                );
+              }
+
+              res.status(201).json({
+                mensagem: "Usuário criado",
+                foto_perfil: fotoPerfil,
+              });
             });
           });
-        });
-      });
+        },
+      );
     });
   } catch (error) {
+    console.log(error.menssage);
     return res.status(500).json({ error: error.message });
   }
 }
@@ -249,7 +256,7 @@ function getPacientes(req, res) {
 
 function getPerfil(req, res) {
   const sql = `
-    SELECT u.login, u.foto_perfil, COALESCE(r.nome, c.nome) AS nome
+    SELECT u.id, u.login, u.foto_perfil, COALESCE(r.nome, c.nome) AS nome
     FROM usuario u
     LEFT JOIN responsavel r ON r.usuario_id = u.id
     LEFT JOIN cuidador c ON c.usuario_id = u.id
@@ -268,9 +275,47 @@ function getPerfil(req, res) {
   });
 }
 
+// Altera a senha atual substituindo por uma nova
+function alterarSenha(req, res) {
+  const { senha, newSenha } = req.body;
+  const userId = req.user?.id;
+
+  if (!userId || !senha || !newSenha) {
+    return res.status(400).json({ error: "Informe todas as senhas." });
+  }
+
+  // busca o hash do usuario no banco
+  const sql = "SELECT senha FROM usuario WHERE id = ?";
+  db.query(sql, [userId], async (err, data) => {
+    if (err) return res.status(500).json({ error: err.message });
+
+    // Se não encontrou nenhum registro
+    if (!data || data.length === 0) {
+      return res.status(401).json({ error: "Usuário inválido!" });
+    }
+
+    const user = data[0];
+    // Verifica se a senha está correta (senha com hash)
+    const passwordMatches = await bcrypt.compare(senha, user.senha);
+    if (!passwordMatches) {
+      return res.status(401).json({ error: "senha inválida" });
+    } else {
+      const hashedNewPassword = await bcrypt.hash(newSenha, 10);
+      const sql2 = "UPDATE usuario SET senha = ? WHERE usuario.id = ?";
+      db.query(sql2, [hashedNewPassword, userId], (err, data) => {
+        if (err) {
+          return res.status(500).json({ error: err.message });
+        }
+        return res.json({ message: "Senha alterada com sucesso!" });
+      });
+    }
+  });
+}
+
 module.exports = {
   login,
   cadastrar,
   getPacientes,
   getPerfil,
+  alterarSenha,
 };

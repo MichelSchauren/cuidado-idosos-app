@@ -13,13 +13,15 @@ function DashboardPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    async function carregarPacientes() {
+    async function carregarDados() {
+      // Validar sessão
       const sessaoValida = await startSection(navigate);
       if (!sessaoValida) return;
 
       const token = localStorage.getItem("token");
 
       try {
+        // Carregar perfil do usuário
         const perfilResponse = await fetch(
           import.meta.env.VITE_SERVER + "perfil",
           { headers: { Authorization: `Bearer ${token}` } },
@@ -28,6 +30,7 @@ function DashboardPage() {
           setPerfil(await perfilResponse.json());
         }
 
+        // Pegar lista de pacientes
         const response = await fetch(
           import.meta.env.VITE_SERVER + "get-pacientes",
           {
@@ -54,7 +57,7 @@ function DashboardPage() {
       }
     }
 
-    carregarPacientes();
+    carregarDados();
   }, []);
 
   return (
@@ -97,7 +100,7 @@ function DashboardPage() {
             </Link>
 
             <Link
-              to="#"
+              to="/add-paciente"
               className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700"
             >
               <Plus className="h-3.5 w-3.5" /> Novo paciente

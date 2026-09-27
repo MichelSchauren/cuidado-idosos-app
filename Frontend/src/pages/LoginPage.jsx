@@ -98,6 +98,7 @@ function LoginPage() {
                 name="senha"
                 id="senha"
                 required
+                value={senha}
                 onChange={(e) => setSenha(e.target.value)}
                 className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 pr-12 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
                 placeholder="Crie uma senha"
