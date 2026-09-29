@@ -9,6 +9,15 @@ function removerFoto(file) {
   }
 }
 
+function executarConsulta(sql, parametros) {
+  return new Promise((resolve, reject) => {
+    db.query(sql, parametros, (err, data) => {
+      if (err) return reject(err);
+      return resolve(data);
+    });
+  });
+}
+
 function nomeCompletoValido(nome) {
   const nomeNormalizado =
     typeof nome === "string" ? nome.trim().replace(/\s+/g, " ") : "";
@@ -229,8 +238,9 @@ function getPacientes(req, res) {
 
     const sql = `
       SELECT p.* FROM ${userTipo}_paciente x
+      JOIN ${userTipo} perfil ON perfil.id = x.${userTipo}_id
       JOIN paciente p ON x.paciente_id = p.id
-      WHERE x.${userTipo}_id = ?`;
+      WHERE perfil.usuario_id = ?`;
 
     db.query(sql, [userId], (err, data) => {
       if (err) {
@@ -264,6 +274,148 @@ function getPacientes(req, res) {
       return buscarPacientes(data[0].tipo_usuario);
     },
   );
+}
+
+async function cadastrarPaciente(req, res) {
+  const usuarioId = req.user?.id;
+  const tipoUsuario = req.user?.tipo_usuario || req.user?.tipo;
+  const perfis = {
+    responsavel: {
+      tabela: "responsavel",
+      relacionamento: "responsavel_paciente",
+      colunaRelacionamento: "responsavel_id",
+    },
+    cuidador: {
+      tabela: "cuidador",
+      relacionamento: "cuidador_paciente",
+      colunaRelacionamento: "cuidador_id",
+    },
+  };
+  const perfil = perfis[tipoUsuario];
+  const nome = typeof req.body.nome === "string" ? req.body.nome.trim() : "";
+  const cpf = typeof req.body.cpf === "string" ? req.body.cpf.trim() : "";
+  const telefone =
+    typeof req.body.telefone === "string" ? req.body.telefone.trim() : "";
+  const endereco =
+    typeof req.body.endereco === "string" ? req.body.endereco.trim() : "";
+  const observacoes =
+    typeof req.body.observacoes === "string" ? req.body.observacoes.trim() : "";
+  const dataNascimento = req.body.data_nascimento || null;
+  const sexo = req.body.sexo || null;
+  const statusAtencao = req.body.status_atencao || "Estável";
+  const foto = req.file ? `/imagens/foto_pacientes/${req.file.filename}` : null;
+
+  function responderErro(status, mensagem) {
+    removerFoto(req.file);
+    return res.status(status).json({ error: mensagem });
+  }
+
+  if (!usuarioId || !perfil) {
+    return responderErro(
+      403,
+      "Usuário sem permissão para cadastrar pacientes.",
+    );
+  }
+
+  if (!nome || nome.length > 150 || !/^\d{11}$/.test(cpf)) {
+    return responderErro(
+      400,
+      "Informe um nome e um CPF válido com 11 dígitos.",
+    );
+  }
+
+  if (telefone.length > 20) {
+    return responderErro(400, "O telefone deve ter no máximo 20 caracteres.");
+  }
+
+  if (sexo && !["M", "F", "Outro"].includes(sexo)) {
+    return responderErro(400, "Selecione uma opção de sexo válida.");
+  }
+
+  if (!["Estável", "Atenção", "Crítico"].includes(statusAtencao)) {
+    return responderErro(400, "Selecione um estado de atenção válido.");
+  }
+
+  if (dataNascimento && !/^\d{4}-\d{2}-\d{2}$/.test(dataNascimento)) {
+    return responderErro(400, "Informe uma data de nascimento válida.");
+  }
+
+  let transacaoIniciada = false;
+
+  try {
+    await new Promise((resolve, reject) => {
+      db.beginTransaction((err) => {
+        if (err) return reject(err);
+        transacaoIniciada = true;
+        return resolve();
+      });
+    });
+
+    const registrosPerfil = await executarConsulta(
+      `SELECT id FROM ${perfil.tabela} WHERE usuario_id = ? LIMIT 1`,
+      [usuarioId],
+    );
+
+    if (!registrosPerfil.length) {
+      const erro = new Error("Perfil de usuário não encontrado.");
+      erro.status = 403;
+      throw erro;
+    }
+
+    const pacienteResult = await executarConsulta(
+      `INSERT INTO paciente
+        (nome, cpf, data_nascimento, sexo, telefone, endereco,
+         status_atencao, observacoes, foto)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        nome,
+        cpf,
+        dataNascimento,
+        sexo,
+        telefone || null,
+        endereco || null,
+        statusAtencao,
+        observacoes || null,
+        foto,
+      ],
+    );
+
+    const relacaoParams = [registrosPerfil[0].id, pacienteResult.insertId];
+    await executarConsulta(
+      `INSERT INTO ${perfil.relacionamento}
+        (${perfil.colunaRelacionamento}, paciente_id)
+       VALUES (?, ?)`,
+      relacaoParams,
+    );
+
+    await new Promise((resolve, reject) => {
+      db.commit((err) => (err ? reject(err) : resolve()));
+    });
+    transacaoIniciada = false;
+
+    return res.status(201).json({
+      id: pacienteResult.insertId,
+      message: "Paciente cadastrado com sucesso.",
+    });
+  } catch (error) {
+    if (transacaoIniciada) {
+      await new Promise((resolve) => db.rollback(() => resolve()));
+    }
+    removerFoto(req.file);
+
+    if (error.code === "ER_DUP_ENTRY") {
+      return res
+        .status(409)
+        .json({ error: "Já existe um paciente com este CPF." });
+    }
+
+    console.error("Erro ao cadastrar paciente:", error);
+    return res
+      .status(error.status || 500)
+      .json({
+        error: error.status ? error.message : "Erro ao cadastrar paciente.",
+      });
+  }
 }
 
 function getPerfil(req, res) {
@@ -410,6 +562,7 @@ module.exports = {
   login,
   cadastrar,
   getPacientes,
+  cadastrarPaciente,
   getPerfil,
   atualizarPerfil,
   alterarSenha,
