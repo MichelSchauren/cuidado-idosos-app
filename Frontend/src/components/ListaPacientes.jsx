@@ -2,15 +2,11 @@ import {
   Phone,
   ChevronRight,
   Package,
-  AlertTriangle,
   User,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
 function ListaPacientes({ pacientes }) {
-  const estoqueAlerta = true;
-  const prescSuspensa = true;
-
   function calcIdade(nascimento) {
     const data = new Date();
     const nasc = new Date(nascimento);
@@ -45,14 +41,9 @@ function ListaPacientes({ pacientes }) {
                 <h3 className="truncate text-base font-semibold text-slate-900">
                   {paciente.nome}
                 </h3>
-                {estoqueAlerta && (
+                {Boolean(paciente.estoque_baixo) && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
                     <Package className="h-3 w-3" /> Estoque baixo
-                  </span>
-                )}
-                {prescSuspensa && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
-                    <AlertTriangle className="h-3 w-3" /> Med. suspenso
                   </span>
                 )}
               </div>
