@@ -23,6 +23,7 @@ router.post(
   uploadFotoPaciente.single("foto"),
   usuarioController.cadastrarPaciente,
 );
+router.get("/pacientes/:id", verificarToken, usuarioController.getPaciente);
 router.get("/get-pacientes", verificarToken, usuarioController.getPacientes);
 router.put("/alterar-senha", verificarToken, usuarioController.alterarSenha);
 

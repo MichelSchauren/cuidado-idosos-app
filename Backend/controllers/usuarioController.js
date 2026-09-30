@@ -276,6 +276,74 @@ function getPacientes(req, res) {
   );
 }
 
+function getPaciente(req, res) {
+  const userId = req.user?.id;
+  const pacienteId = req.params.id;
+  const relacoes = {
+    responsavel: {
+      tabelaPerfil: "responsavel",
+      tabelaRelacao: "responsavel_paciente",
+      colunaPerfil: "responsavel_id",
+    },
+    cuidador: {
+      tabelaPerfil: "cuidador",
+      tabelaRelacao: "cuidador_paciente",
+      colunaPerfil: "cuidador_id",
+    },
+  };
+
+  if (!userId || !/^\d+$/.test(pacienteId)) {
+    return res
+      .status(400)
+      .json({ error: "Identificador de paciente inválido." });
+  }
+
+  function buscarPaciente(tipoUsuario) {
+    const relacao = relacoes[tipoUsuario];
+    if (!relacao) {
+      return res.status(403).json({ error: "Usuário sem permissão." });
+    }
+
+    const sql = `
+      SELECT p.*
+      FROM paciente p
+      JOIN ${relacao.tabelaRelacao} x ON x.paciente_id = p.id
+      JOIN ${relacao.tabelaPerfil} perfil ON perfil.id = x.${relacao.colunaPerfil}
+      WHERE perfil.usuario_id = ? AND p.id = ?
+      LIMIT 1`;
+
+    db.query(sql, [userId, pacienteId], (err, pacientes) => {
+      if (err) {
+        console.error("Erro ao buscar paciente:", err);
+        return res.status(500).json({ error: "Erro interno do servidor." });
+      }
+
+      if (!pacientes || pacientes.length === 0) {
+        return res.status(404).json({ error: "Paciente não encontrado." });
+      }
+
+      return res.json(pacientes[0]);
+    });
+  }
+
+  const tipoDoToken = req.user.tipo_usuario || req.user.tipo;
+  if (tipoDoToken) return buscarPaciente(tipoDoToken);
+
+  db.query(
+    "SELECT tipo_usuario FROM usuario WHERE id = ?",
+    [userId],
+    (err, usuarios) => {
+      if (err) {
+        return res.status(500).json({ error: "Erro interno do servidor." });
+      }
+      if (!usuarios || usuarios.length === 0) {
+        return res.status(403).json({ error: "Usuário sem permissão." });
+      }
+      return buscarPaciente(usuarios[0].tipo_usuario);
+    },
+  );
+}
+
 async function cadastrarPaciente(req, res) {
   const usuarioId = req.user?.id;
   const tipoUsuario = req.user?.tipo_usuario || req.user?.tipo;
@@ -410,11 +478,9 @@ async function cadastrarPaciente(req, res) {
     }
 
     console.error("Erro ao cadastrar paciente:", error);
-    return res
-      .status(error.status || 500)
-      .json({
-        error: error.status ? error.message : "Erro ao cadastrar paciente.",
-      });
+    return res.status(error.status || 500).json({
+      error: error.status ? error.message : "Erro ao cadastrar paciente.",
+    });
   }
 }
 
@@ -562,6 +628,7 @@ module.exports = {
   login,
   cadastrar,
   getPacientes,
+  getPaciente,
   cadastrarPaciente,
   getPerfil,
   atualizarPerfil,

@@ -9,6 +9,7 @@ import CadastroPage from "./pages/CadastroPage.jsx";
 import DashboardPage from "./pages/DashboardPage.jsx";
 import PerfilUsuario from "./pages/PerfilUsuario.jsx";
 import AddPaciente from "./pages/AddPaciente.jsx";
+import Paciente from "./pages/Paciente.jsx";
 
 const router = createBrowserRouter([
   {
@@ -34,6 +35,14 @@ const router = createBrowserRouter([
   {
     path: "/add-paciente",
     element: <AddPaciente />,
+  },
+  {
+    path: "/paciente/:id",
+    element: <Paciente />,
+  },
+  {
+    path: "/paciente/:id/:aba",
+    element: <Paciente />,
   },
 ]);
 
