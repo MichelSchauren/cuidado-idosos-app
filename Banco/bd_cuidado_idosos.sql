@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Tempo de geração: 23/08/2026 às 14:27
+-- Tempo de geração: 01/10/2026 às 03:54
 -- Versão do servidor: 10.4.32-MariaDB
 -- Versão do PHP: 8.2.12
 
@@ -22,6 +22,20 @@ SET time_zone = "+00:00";
 --
 CREATE DATABASE IF NOT EXISTS `bd_cuidado_idosos` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 USE `bd_cuidado_idosos`;
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `administracao_medicamento`
+--
+
+CREATE TABLE `administracao_medicamento` (
+  `id` bigint(20) NOT NULL,
+  `medicamento_horario_id` bigint(20) NOT NULL,
+  `data_referencia` date NOT NULL,
+  `administrado_por` bigint(20) NOT NULL,
+  `administrado_em` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -59,25 +73,6 @@ CREATE TABLE `cuidador_paciente` (
 -- --------------------------------------------------------
 
 --
--- Estrutura para tabela `paciente`
---
-
-CREATE TABLE `paciente` (
-  `id` bigint(20) NOT NULL,
-  `nome` varchar(150) NOT NULL,
-  `cpf` char(11) NOT NULL,
-  `data_nascimento` date DEFAULT NULL,
-  `sexo` enum('M','F','Outro') DEFAULT NULL,
-  `telefone` varchar(20) DEFAULT NULL,
-  `endereco` text DEFAULT NULL,
-  `status_atencao` enum('Estável','Atenção','Crítico') DEFAULT 'Estável',
-  `observacoes` text DEFAULT NULL,
-  `foto` varchar(255) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
 -- Estrutura para tabela `medicamento`
 --
 
@@ -85,7 +80,7 @@ CREATE TABLE `medicamento` (
   `id` bigint(20) NOT NULL,
   `paciente_id` bigint(20) NOT NULL,
   `nome` varchar(150) NOT NULL,
-  `quantidade_comprimidos` int(10) unsigned NOT NULL DEFAULT 0,
+  `quantidade_comprimidos` int(10) UNSIGNED NOT NULL DEFAULT 0,
   `criado_por` bigint(20) NOT NULL,
   `criado_em` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -105,23 +100,21 @@ CREATE TABLE `medicamento_horario` (
 -- --------------------------------------------------------
 
 --
--- Estrutura para tabela `administracao_medicamento`
+-- Estrutura para tabela `paciente`
 --
 
-CREATE TABLE `administracao_medicamento` (
+CREATE TABLE `paciente` (
   `id` bigint(20) NOT NULL,
-  `medicamento_horario_id` bigint(20) NOT NULL,
-  `data_referencia` date NOT NULL,
-  `administrado_por` bigint(20) NOT NULL,
-  `administrado_em` timestamp NOT NULL DEFAULT current_timestamp()
+  `nome` varchar(150) NOT NULL,
+  `cpf` char(11) NOT NULL,
+  `data_nascimento` date DEFAULT NULL,
+  `sexo` enum('M','F','Outro') DEFAULT NULL,
+  `telefone` varchar(20) DEFAULT NULL,
+  `endereco` text DEFAULT NULL,
+  `status_atencao` enum('Estável','Atenção','Crítico') DEFAULT 'Estável',
+  `observacoes` text DEFAULT NULL,
+  `foto` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Despejando dados para a tabela `paciente`
---
-
-INSERT INTO `paciente` (`id`, `nome`, `cpf`, `data_nascimento`, `sexo`, `telefone`, `endereco`, `status_atencao`, `observacoes`, `foto`) VALUES
-(1, 'Paciente_exemplo', '00000000000', '1939-01-01', 'M', '00000000000', 'Feliz-RS, Brasil.', 'Estável', '', NULL);
 
 -- --------------------------------------------------------
 
@@ -139,13 +132,6 @@ CREATE TABLE `responsavel` (
   `sexo` enum('M','F','Outro') DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Despejando dados para a tabela `responsavel`
---
-
-INSERT INTO `responsavel` (`id`, `usuario_id`, `nome`, `cpf`, `telefone`, `data_nascimento`, `sexo`) VALUES
-(1, 1, 'admin', NULL, NULL, NULL, NULL);
-
 -- --------------------------------------------------------
 
 --
@@ -161,13 +147,6 @@ CREATE TABLE `responsavel_paciente` (
   `pode_convidar_cuidador` tinyint(1) DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Despejando dados para a tabela `responsavel_paciente`
---
-
-INSERT INTO `responsavel_paciente` (`id`, `responsavel_id`, `paciente_id`, `grau_parentesco`, `pode_editar_paciente`, `pode_convidar_cuidador`) VALUES
-(1, 1, 1, NULL, 1, 1);
-
 -- --------------------------------------------------------
 
 --
@@ -177,8 +156,8 @@ INSERT INTO `responsavel_paciente` (`id`, `responsavel_id`, `paciente_id`, `grau
 CREATE TABLE `usuario` (
   `id` bigint(20) NOT NULL,
   `login` varchar(50) NOT NULL,
-  `email` varchar(255) DEFAULT NULL,
   `senha` varchar(255) NOT NULL,
+  `email` varchar(50) NOT NULL,
   `tipo_usuario` enum('cuidador','responsavel') NOT NULL,
   `ativo` tinyint(1) DEFAULT 1,
   `criado_em` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -186,15 +165,16 @@ CREATE TABLE `usuario` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Despejando dados para a tabela `usuario`
---
-
-INSERT INTO `usuario` (`id`, `login`, `senha`, `tipo_usuario`, `ativo`, `criado_em`, `foto_perfil`) VALUES
-(1, 'admin', '$2b$10$CJm4Ui9jhhdnAEBWlEFLiexb/OXwemiDqltOw8afnhhFJkPnbOwZ.', 'responsavel', 1, '2026-07-26 23:51:26', NULL);
-
---
 -- Índices para tabelas despejadas
 --
+
+--
+-- Índices de tabela `administracao_medicamento`
+--
+ALTER TABLE `administracao_medicamento`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `dose_diaria_unica` (`medicamento_horario_id`,`data_referencia`),
+  ADD KEY `administrado_por` (`administrado_por`);
 
 --
 -- Índices de tabela `cuidador`
@@ -213,13 +193,6 @@ ALTER TABLE `cuidador_paciente`
   ADD KEY `paciente_id` (`paciente_id`);
 
 --
--- Índices de tabela `paciente`
---
-ALTER TABLE `paciente`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `cpf` (`cpf`);
-
---
 -- Índices de tabela `medicamento`
 --
 ALTER TABLE `medicamento`
@@ -235,12 +208,11 @@ ALTER TABLE `medicamento_horario`
   ADD UNIQUE KEY `medicamento_horario_unico` (`medicamento_id`,`horario`);
 
 --
--- Índices de tabela `administracao_medicamento`
+-- Índices de tabela `paciente`
 --
-ALTER TABLE `administracao_medicamento`
+ALTER TABLE `paciente`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `dose_diaria_unica` (`medicamento_horario_id`,`data_referencia`),
-  ADD KEY `administrado_por` (`administrado_por`);
+  ADD UNIQUE KEY `cpf` (`cpf`);
 
 --
 -- Índices de tabela `responsavel`
@@ -263,42 +235,11 @@ ALTER TABLE `responsavel_paciente`
 --
 ALTER TABLE `usuario`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `login` (`login`),
-  ADD UNIQUE KEY `email` (`email`);
+  ADD UNIQUE KEY `login` (`login`);
 
 --
 -- AUTO_INCREMENT para tabelas despejadas
 --
-
---
--- AUTO_INCREMENT de tabela `cuidador`
---
-ALTER TABLE `cuidador`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT de tabela `cuidador_paciente`
---
-ALTER TABLE `cuidador_paciente`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT de tabela `paciente`
---
-ALTER TABLE `paciente`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
-
---
--- AUTO_INCREMENT de tabela `medicamento`
---
-ALTER TABLE `medicamento`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT de tabela `medicamento_horario`
---
-ALTER TABLE `medicamento_horario`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT de tabela `administracao_medicamento`
@@ -307,26 +248,63 @@ ALTER TABLE `administracao_medicamento`
   MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT de tabela `cuidador`
+--
+ALTER TABLE `cuidador`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT de tabela `cuidador_paciente`
+--
+ALTER TABLE `cuidador_paciente`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT de tabela `medicamento`
+--
+ALTER TABLE `medicamento`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT de tabela `medicamento_horario`
+--
+ALTER TABLE `medicamento_horario`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT de tabela `paciente`
+--
+ALTER TABLE `paciente`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
 -- AUTO_INCREMENT de tabela `responsavel`
 --
 ALTER TABLE `responsavel`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT de tabela `responsavel_paciente`
 --
 ALTER TABLE `responsavel_paciente`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT de tabela `usuario`
 --
 ALTER TABLE `usuario`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- Restrições para tabelas despejadas
 --
+
+--
+-- Restrições para tabelas `administracao_medicamento`
+--
+ALTER TABLE `administracao_medicamento`
+  ADD CONSTRAINT `administracao_medicamento_ibfk_1` FOREIGN KEY (`medicamento_horario_id`) REFERENCES `medicamento_horario` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `administracao_medicamento_ibfk_2` FOREIGN KEY (`administrado_por`) REFERENCES `usuario` (`id`);
 
 --
 -- Restrições para tabelas `cuidador`
@@ -342,18 +320,17 @@ ALTER TABLE `cuidador_paciente`
   ADD CONSTRAINT `cuidador_paciente_ibfk_2` FOREIGN KEY (`paciente_id`) REFERENCES `paciente` (`id`) ON DELETE CASCADE;
 
 --
--- Restrições para tabelas de medicamentos
+-- Restrições para tabelas `medicamento`
 --
 ALTER TABLE `medicamento`
   ADD CONSTRAINT `medicamento_ibfk_1` FOREIGN KEY (`paciente_id`) REFERENCES `paciente` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `medicamento_ibfk_2` FOREIGN KEY (`criado_por`) REFERENCES `usuario` (`id`);
 
+--
+-- Restrições para tabelas `medicamento_horario`
+--
 ALTER TABLE `medicamento_horario`
   ADD CONSTRAINT `medicamento_horario_ibfk_1` FOREIGN KEY (`medicamento_id`) REFERENCES `medicamento` (`id`) ON DELETE CASCADE;
-
-ALTER TABLE `administracao_medicamento`
-  ADD CONSTRAINT `administracao_medicamento_ibfk_1` FOREIGN KEY (`medicamento_horario_id`) REFERENCES `medicamento_horario` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `administracao_medicamento_ibfk_2` FOREIGN KEY (`administrado_por`) REFERENCES `usuario` (`id`);
 
 --
 -- Restrições para tabelas `responsavel`
@@ -372,3 +349,74 @@ COMMIT;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+
+USE `bd_cuidado_idosos`;
+
+
+
+
+
+
+
+
+
+-- =====================================================
+-- 1) USUÁRIOS (senha de ambos: 12345678, hash bcrypt)
+-- =====================================================
+INSERT INTO `usuario` (`id`, `login`, `senha`, `email`, `tipo_usuario`, `ativo`, `foto_perfil`) VALUES
+(1, 'ex_responsavel', '$2b$10$unEHxWQ30LWOyArf0eS2/.YW9LYH7IgPhmFX0eLzgFtGnnsl1gBGS', 'responsavel@exemplo.com', 'responsavel', 1, NULL),
+(2, 'ex_cuidador',    '$2b$10$unEHxWQ30LWOyArf0eS2/.YW9LYH7IgPhmFX0eLzgFtGnnsl1gBGS', 'cuidador@exemplo.com',    'cuidador',    1, NULL);
+
+-- =====================================================
+-- 2) RESPONSÁVEL (perfil do usuário 1)
+-- =====================================================
+INSERT INTO `responsavel` (`id`, `usuario_id`, `nome`, `cpf`, `telefone`, `data_nascimento`, `sexo`) VALUES
+(1, 1, 'Maria Oliveira', '12345678901', '(51) 99999-1111', '1985-03-15', 'F');
+
+-- =====================================================
+-- 3) CUIDADOR (perfil do usuário 2)
+-- =====================================================
+INSERT INTO `cuidador` (`id`, `usuario_id`, `nome`, `cpf`, `telefone`, `data_nascimento`, `sexo`, `especializacao`) VALUES
+(1, 2, 'João Silva', '98765432100', '(51) 98888-2222', '1990-07-22', 'M', 'Técnico em Enfermagem');
+
+-- =====================================================
+-- 4) PACIENTE
+-- =====================================================
+INSERT INTO `paciente` (`id`, `nome`, `cpf`, `data_nascimento`, `sexo`, `telefone`, `endereco`, `status_atencao`, `observacoes`, `foto`) VALUES
+(1, 'Dona Aparecida Souza', '11122233344', '1942-11-05', 'F', '(51) 3333-4444',
+ 'Rua das Flores, 123 - Centro, Novo Hamburgo/RS', 'Atenção',
+ 'Hipertensa e diabética. Usa bengala para locomoção.', NULL);
+
+-- =====================================================
+-- 5) RESPONSÁVEL x PACIENTE
+-- =====================================================
+INSERT INTO `responsavel_paciente` (`id`, `responsavel_id`, `paciente_id`, `grau_parentesco`, `pode_editar_paciente`, `pode_convidar_cuidador`) VALUES
+(1, 1, 1, 'Filha', 1, 1);
+
+-- =====================================================
+-- 6) CUIDADOR x PACIENTE
+-- =====================================================
+INSERT INTO `cuidador_paciente` (`id`, `cuidador_id`, `paciente_id`, `turno`, `data_inicio`, `data_fim`, `observacoes`) VALUES
+(1, 1, 1, 'Manhã', '2026-09-01', NULL, 'Responsável pela medicação e acompanhamento das refeições.');
+
+-- =====================================================
+-- 7) MEDICAMENTO (criado pelo usuário responsável, id 1)
+-- =====================================================
+INSERT INTO `medicamento` (`id`, `paciente_id`, `nome`, `quantidade_comprimidos`, `criado_por`) VALUES
+(1, 1, 'Losartana 50mg', 30, 1);
+
+-- =====================================================
+-- 8) HORÁRIOS DO MEDICAMENTO
+-- =====================================================
+INSERT INTO `medicamento_horario` (`id`, `medicamento_id`, `horario`) VALUES
+(1, 1, '08:00:00'),
+(2, 1, '20:00:00');
+
+-- =====================================================
+-- 9) ADMINISTRAÇÃO DO MEDICAMENTO (dose das 08:00 dada pelo cuidador, usuário 2)
+-- =====================================================
+INSERT INTO `administracao_medicamento` (`id`, `medicamento_horario_id`, `data_referencia`, `administrado_por`) VALUES
+(1, 1, '2026-10-01', 2);
+
+-- (Opcional) baixa no estoque de comprimidos após a administração
+UPDATE `medicamento` SET `quantidade_comprimidos` = `quantidade_comprimidos` - 1 WHERE `id` = 1;

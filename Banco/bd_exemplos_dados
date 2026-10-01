@@ -1,0 +1,62 @@
+USE `bd_cuidado_idosos`;
+
+-- =====================================================
+-- 1) USUÁRIOS (senha de ambos: 12345678, hash bcrypt)
+-- =====================================================
+INSERT INTO `usuario` (`id`, `login`, `senha`, `email`, `tipo_usuario`, `ativo`, `foto_perfil`) VALUES
+(1, 'ex_responsavel', '$2b$10$unEHxWQ30LWOyArf0eS2/.YW9LYH7IgPhmFX0eLzgFtGnnsl1gBGS', 'responsavel@exemplo.com', 'responsavel', 1, NULL),
+(2, 'ex_cuidador',    '$2b$10$unEHxWQ30LWOyArf0eS2/.YW9LYH7IgPhmFX0eLzgFtGnnsl1gBGS', 'cuidador@exemplo.com',    'cuidador',    1, NULL);
+
+-- =====================================================
+-- 2) RESPONSÁVEL (perfil do usuário 1)
+-- =====================================================
+INSERT INTO `responsavel` (`id`, `usuario_id`, `nome`, `cpf`, `telefone`, `data_nascimento`, `sexo`) VALUES
+(1, 1, 'Maria Oliveira', '12345678901', '(51) 99999-1111', '1985-03-15', 'F');
+
+-- =====================================================
+-- 3) CUIDADOR (perfil do usuário 2)
+-- =====================================================
+INSERT INTO `cuidador` (`id`, `usuario_id`, `nome`, `cpf`, `telefone`, `data_nascimento`, `sexo`, `especializacao`) VALUES
+(1, 2, 'João Silva', '98765432100', '(51) 98888-2222', '1990-07-22', 'M', 'Técnico em Enfermagem');
+
+-- =====================================================
+-- 4) PACIENTE
+-- =====================================================
+INSERT INTO `paciente` (`id`, `nome`, `cpf`, `data_nascimento`, `sexo`, `telefone`, `endereco`, `status_atencao`, `observacoes`, `foto`) VALUES
+(1, 'Dona Aparecida Souza', '11122233344', '1942-11-05', 'F', '(51) 3333-4444',
+ 'Rua das Flores, 123 - Centro, Novo Hamburgo/RS', 'Atenção',
+ 'Hipertensa e diabética. Usa bengala para locomoção.', NULL);
+
+-- =====================================================
+-- 5) RESPONSÁVEL x PACIENTE
+-- =====================================================
+INSERT INTO `responsavel_paciente` (`id`, `responsavel_id`, `paciente_id`, `grau_parentesco`, `pode_editar_paciente`, `pode_convidar_cuidador`) VALUES
+(1, 1, 1, 'Filha', 1, 1);
+
+-- =====================================================
+-- 6) CUIDADOR x PACIENTE
+-- =====================================================
+INSERT INTO `cuidador_paciente` (`id`, `cuidador_id`, `paciente_id`, `turno`, `data_inicio`, `data_fim`, `observacoes`) VALUES
+(1, 1, 1, 'Manhã', '2026-09-01', NULL, 'Responsável pela medicação e acompanhamento das refeições.');
+
+-- =====================================================
+-- 7) MEDICAMENTO (criado pelo usuário responsável, id 1)
+-- =====================================================
+INSERT INTO `medicamento` (`id`, `paciente_id`, `nome`, `quantidade_comprimidos`, `criado_por`) VALUES
+(1, 1, 'Losartana 50mg', 30, 1);
+
+-- =====================================================
+-- 8) HORÁRIOS DO MEDICAMENTO
+-- =====================================================
+INSERT INTO `medicamento_horario` (`id`, `medicamento_id`, `horario`) VALUES
+(1, 1, '08:00:00'),
+(2, 1, '20:00:00');
+
+-- =====================================================
+-- 9) ADMINISTRAÇÃO DO MEDICAMENTO (dose das 08:00 dada pelo cuidador, usuário 2)
+-- =====================================================
+INSERT INTO `administracao_medicamento` (`id`, `medicamento_horario_id`, `data_referencia`, `administrado_por`) VALUES
+(1, 1, '2026-10-01', 2);
+
+-- (Opcional) baixa no estoque de comprimidos após a administração
+UPDATE `medicamento` SET `quantidade_comprimidos` = `quantidade_comprimidos` - 1 WHERE `id` = 1;
