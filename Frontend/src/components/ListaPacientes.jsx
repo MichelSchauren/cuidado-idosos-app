@@ -1,11 +1,6 @@
-import {
-  Phone,
-  ChevronRight,
-  Package,
-  AlertTriangle,
-  User,
-} from "lucide-react";
+import { Phone, ChevronRight, Package, AlertTriangle } from "lucide-react";
 import { Link } from "react-router-dom";
+import FotoPerfil from "./FotoPerfil";
 
 function ListaPacientes({ pacientes }) {
   const estoqueAlerta = true;
@@ -37,7 +32,12 @@ function ListaPacientes({ pacientes }) {
         <Link to={`/paciente/${paciente.id}/perfil`} key={paciente.id}>
           <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 text-left shadow-sm transition hover:shadow-md sm:p-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-100">
-              <User className="h-5 w-5 text-emerald-700" />
+              {/* <User className="h-5 w-5 text-emerald-700" /> */}
+              <FotoPerfil
+                src={paciente.foto}
+                alt={paciente.nome}
+                size="pequeno"
+              />
             </div>
 
             <div className="min-w-0 flex-1">

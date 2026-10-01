@@ -16,12 +16,28 @@ router.get("/validar-token", verificarToken, (req, res) => {
 });
 
 router.get("/perfil", verificarToken, usuarioController.getPerfil);
-router.put("/perfil", verificarToken, usuarioController.atualizarPerfil);
+router.put(
+  "/perfil",
+  verificarToken,
+  uploadFotoPerfil.single("foto_perfil"),
+  usuarioController.atualizarPerfil,
+);
 router.post(
   "/pacientes",
   verificarToken,
   uploadFotoPaciente.single("foto"),
   usuarioController.cadastrarPaciente,
+);
+router.put(
+  "/pacientes/:id",
+  verificarToken,
+  uploadFotoPaciente.single("foto"),
+  usuarioController.atualizarPaciente,
+);
+router.delete(
+  "/pacientes/:id",
+  verificarToken,
+  usuarioController.excluirPaciente,
 );
 router.get("/pacientes/:id", verificarToken, usuarioController.getPaciente);
 router.get("/get-pacientes", verificarToken, usuarioController.getPacientes);

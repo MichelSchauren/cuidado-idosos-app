@@ -7,8 +7,7 @@ const routes = require("./routes/usuarioRoutes");
 
 const app = express();
 app.use(cors());
-// Permite que o backend receba dados JSON no corpo das requisições POST/PUT.
-app.use(express.json());
+app.use(express.json()); // Permite que o backend receba dados JSON no corpo das requisições POST/PUT.
 app.use("/imagens", express.static(path.join(__dirname, "imagens")));
 app.use("/api", routes);
 

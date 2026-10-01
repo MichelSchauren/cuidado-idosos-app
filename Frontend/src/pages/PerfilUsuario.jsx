@@ -99,20 +99,24 @@ function PerfilUsuario() {
 
     setSalvando(true);
     try {
+      const dadosPerfil = new FormData();
+      dadosPerfil.append("nome", perfil.nome);
+      dadosPerfil.append("email", perfil.email);
+      dadosPerfil.append("cpf", perfil.cpf);
+      dadosPerfil.append("telefone", perfil.telefone);
+      dadosPerfil.append(
+        "data_nascimento",
+        String(perfil.data_nascimento || "").slice(0, 10),
+      );
+      dadosPerfil.append("sexo", perfil.sexo);
+      if (foto) dadosPerfil.append("foto_perfil", foto);
+
       const response = await fetch(import.meta.env.VITE_SERVER + "perfil", {
         method: "PUT",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        body: JSON.stringify({
-          nome: perfil.nome,
-          email: perfil.email,
-          cpf: perfil.cpf,
-          telefone: perfil.telefone,
-          data_nascimento: String(perfil.data_nascimento || "").slice(0, 10),
-          sexo: perfil.sexo,
-        }),
+        body: dadosPerfil,
       });
 
       if (!response.ok) {
@@ -120,6 +124,15 @@ function PerfilUsuario() {
         throw new Error(dados.error || "Não foi possível salvar seu perfil.");
       }
 
+      const dados = await response.json();
+      if (dados.foto_perfil) {
+        setPerfil((perfilAtual) => ({
+          ...perfilAtual,
+          foto_perfil: dados.foto_perfil,
+        }));
+        setFoto(null);
+        setFotoPreview("");
+      }
       setSalvo(true);
     } catch (error) {
       console.error(error);
@@ -200,11 +213,6 @@ function PerfilUsuario() {
     (perfil.foto_perfil
       ? `${import.meta.env.VITE_SERVER.replace(/\/api\/?$/, "")}${perfil.foto_perfil}`
       : "");
-
-  console.log("PerfilUsuario renderizado. Estado atual:", {
-    perfil,
-    foto,
-  });
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_right,_#d1fae5,_transparent_34%),linear-gradient(135deg,_#f8fafc_0%,_#ecfdf5_100%)] px-4 py-6 sm:px-6 lg:px-8">
