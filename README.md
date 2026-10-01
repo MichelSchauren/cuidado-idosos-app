@@ -150,6 +150,17 @@ ALTER TABLE usuario
   ADD UNIQUE KEY email (email);
 ```
 
+Para habilitar a área de medicamentos em um banco que já existia antes desta
+funcionalidade, importe uma vez o arquivo `migracao_medicamentos.sql`. Pelo
+terminal, use:
+
+```bash
+mysql -u root -p bd_cuidado_idosos < migracao_medicamentos.sql
+```
+
+O arquivo principal `bd_cuidado_idosos.sql` já contém essas tabelas para novas
+instalações.
+
 ### 5. Rodar o projeto
 
 **Backend:**

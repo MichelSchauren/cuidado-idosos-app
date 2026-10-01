@@ -77,6 +77,67 @@ function maiorDeIdade(dataNascimento) {
   return nascimento <= limite;
 }
 
+function executarConsultaNaConexao(conexao, sql, parametros) {
+  return new Promise((resolve, reject) => {
+    conexao.query(sql, parametros, (err, data) => {
+      if (err) return reject(err);
+      return resolve(data);
+    });
+  });
+}
+
+const relacoesPaciente = {
+  responsavel: {
+    tabelaPerfil: "responsavel",
+    tabelaRelacao: "responsavel_paciente",
+    colunaPerfil: "responsavel_id",
+  },
+  cuidador: {
+    tabelaPerfil: "cuidador",
+    tabelaRelacao: "cuidador_paciente",
+    colunaPerfil: "cuidador_id",
+  },
+};
+
+function tipoUsuario(req) {
+  return req.user?.tipo_usuario || req.user?.tipo;
+}
+
+async function usuarioTemAcessoAoPaciente(usuarioId, tipo, pacienteId) {
+  const relacao = relacoesPaciente[tipo];
+  if (!usuarioId || !relacao || !/^\d+$/.test(String(pacienteId))) return false;
+
+  const registros = await executarConsulta(
+    `SELECT 1
+       FROM ${relacao.tabelaRelacao} x
+       JOIN ${relacao.tabelaPerfil} perfil
+         ON perfil.id = x.${relacao.colunaPerfil}
+      WHERE perfil.usuario_id = ? AND x.paciente_id = ?
+      LIMIT 1`,
+    [usuarioId, pacienteId],
+  );
+  return registros.length > 0;
+}
+
+function dataValida(data) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(data || "")) return false;
+  const [ano, mes, dia] = data.split("-").map(Number);
+  const valor = new Date(ano, mes - 1, dia);
+  return (
+    valor.getFullYear() === ano &&
+    valor.getMonth() === mes - 1 &&
+    valor.getDate() === dia
+  );
+}
+
+function dataAtualLocal() {
+  const agora = new Date();
+  const ano = agora.getFullYear();
+  const mes = String(agora.getMonth() + 1).padStart(2, "0");
+  const dia = String(agora.getDate()).padStart(2, "0");
+  return `${ano}-${mes}-${dia}`;
+}
+
 // Login
 function login(req, res) {
   const identificador = req.body.login || req.body.email;
@@ -268,7 +329,13 @@ function getPacientes(req, res) {
     }
 
     const sql = `
-      SELECT p.* FROM ${userTipo}_paciente x
+      SELECT p.*,
+             EXISTS (
+               SELECT 1 FROM medicamento m
+               WHERE m.paciente_id = p.id
+                 AND m.quantidade_comprimidos <= 5
+             ) AS estoque_baixo
+      FROM ${userTipo}_paciente x
       JOIN ${userTipo} perfil ON perfil.id = x.${userTipo}_id
       JOIN paciente p ON x.paciente_id = p.id
       WHERE perfil.usuario_id = ?`;
@@ -310,18 +377,7 @@ function getPacientes(req, res) {
 function getPaciente(req, res) {
   const userId = req.user?.id;
   const pacienteId = req.params.id;
-  const relacoes = {
-    responsavel: {
-      tabelaPerfil: "responsavel",
-      tabelaRelacao: "responsavel_paciente",
-      colunaPerfil: "responsavel_id",
-    },
-    cuidador: {
-      tabelaPerfil: "cuidador",
-      tabelaRelacao: "cuidador_paciente",
-      colunaPerfil: "cuidador_id",
-    },
-  };
+  const relacoes = relacoesPaciente;
 
   if (!userId || !/^\d+$/.test(pacienteId)) {
     return res
@@ -353,7 +409,7 @@ function getPaciente(req, res) {
         return res.status(404).json({ error: "Paciente não encontrado." });
       }
 
-      return res.json(pacientes[0]);
+      return res.json({ ...pacientes[0], tipo_usuario: tipoUsuario });
     });
   }
 
@@ -613,11 +669,6 @@ async function cadastrarPaciente(req, res) {
       relacionamento: "responsavel_paciente",
       colunaRelacionamento: "responsavel_id",
     },
-    cuidador: {
-      tabela: "cuidador",
-      relacionamento: "cuidador_paciente",
-      colunaRelacionamento: "cuidador_id",
-    },
   };
   const perfil = perfis[tipoUsuario];
   const nome = typeof req.body.nome === "string" ? req.body.nome.trim() : "";
@@ -746,7 +797,7 @@ async function cadastrarPaciente(req, res) {
 
 function getPerfil(req, res) {
   const sql = `
-    SELECT u.id, u.login, u.email, u.criado_em, u.foto_perfil,
+    SELECT u.id, u.login, u.email, u.tipo_usuario, u.criado_em, u.foto_perfil,
 	  COALESCE(r.nome, c.nome) as nome,
     COALESCE(r.cpf, c.cpf) as cpf,
     COALESCE(r.telefone, c.telefone) as telefone,
@@ -768,6 +819,287 @@ function getPerfil(req, res) {
 
     return res.json(data[0]);
   });
+}
+
+async function getMedicamentos(req, res) {
+  const usuarioId = req.user?.id;
+  const tipo = tipoUsuario(req);
+  const pacienteId = req.params.id;
+  const data = req.query.data;
+
+  if (!dataValida(data)) {
+    return res.status(400).json({ error: "Informe uma data válida." });
+  }
+  try {
+    if (!(await usuarioTemAcessoAoPaciente(usuarioId, tipo, pacienteId))) {
+      return res.status(403).json({ error: "Usuário sem acesso ao paciente." });
+    }
+
+    const medicamentos = await executarConsulta(
+      `SELECT id, nome, quantidade_comprimidos, criado_em
+         FROM medicamento
+        WHERE paciente_id = ?
+        ORDER BY nome`,
+      [pacienteId],
+    );
+
+    if (!medicamentos.length) return res.json([]);
+
+    const ids = medicamentos.map((medicamento) => medicamento.id);
+    const horarios = await executarConsulta(
+      `SELECT h.id, h.medicamento_id,
+              TIME_FORMAT(h.horario, '%H:%i') AS horario,
+              a.id AS administracao_id,
+              a.administrado_em
+         FROM medicamento_horario h
+         LEFT JOIN administracao_medicamento a
+           ON a.medicamento_horario_id = h.id
+          AND a.data_referencia = ?
+        WHERE h.medicamento_id IN (?)
+        ORDER BY h.horario`,
+      [data, ids],
+    );
+
+    const horariosPorMedicamento = new Map();
+    for (const horario of horarios) {
+      const lista = horariosPorMedicamento.get(horario.medicamento_id) || [];
+      lista.push({
+        id: horario.id,
+        horario: horario.horario,
+        administrado: Boolean(horario.administracao_id),
+        administrado_em: horario.administrado_em,
+      });
+      horariosPorMedicamento.set(horario.medicamento_id, lista);
+    }
+
+    return res.json(
+      medicamentos.map((medicamento) => ({
+        ...medicamento,
+        horarios: horariosPorMedicamento.get(medicamento.id) || [],
+      })),
+    );
+  } catch (error) {
+    console.error("Erro ao buscar medicamentos:", error);
+    return res.status(500).json({ error: "Erro ao buscar medicamentos." });
+  }
+}
+
+async function cadastrarMedicamento(req, res) {
+  const usuarioId = req.user?.id;
+  const tipo = tipoUsuario(req);
+  const pacienteId = req.params.id;
+  const nome = typeof req.body.nome === "string" ? req.body.nome.trim() : "";
+  const quantidade = Number(req.body.quantidade_comprimidos);
+  const horarios = Array.isArray(req.body.horarios)
+    ? [...new Set(req.body.horarios.map((horario) => String(horario).trim()))]
+    : [];
+
+  if (tipo !== "responsavel") {
+    return res.status(403).json({ error: "Somente o responsável pode adicionar medicamentos." });
+  }
+  if (!nome || nome.length > 150) {
+    return res.status(400).json({ error: "Informe o nome do medicamento." });
+  }
+  if (!Number.isSafeInteger(quantidade) || quantidade < 0 || quantidade > 1000000) {
+    return res.status(400).json({ error: "Informe uma quantidade válida de comprimidos." });
+  }
+  if (!horarios.length || horarios.some((horario) => !/^([01]\d|2[0-3]):[0-5]\d$/.test(horario))) {
+    return res.status(400).json({ error: "Informe pelo menos um horário válido." });
+  }
+
+  let transacaoIniciada = false;
+  let conexao;
+  try {
+    if (!(await usuarioTemAcessoAoPaciente(usuarioId, tipo, pacienteId))) {
+      return res.status(403).json({ error: "Usuário sem acesso ao paciente." });
+    }
+
+    conexao = db.criarConexaoTransacional();
+    await new Promise((resolve, reject) =>
+      conexao.beginTransaction((error) => {
+        if (error) return reject(error);
+        transacaoIniciada = true;
+        return resolve();
+      }),
+    );
+
+    const resultado = await executarConsultaNaConexao(
+      conexao,
+      `INSERT INTO medicamento (paciente_id, nome, quantidade_comprimidos, criado_por)
+       VALUES (?, ?, ?, ?)`,
+      [pacienteId, nome, quantidade, usuarioId],
+    );
+
+    for (const horario of horarios.sort()) {
+      await executarConsultaNaConexao(
+        conexao,
+        "INSERT INTO medicamento_horario (medicamento_id, horario) VALUES (?, ?)",
+        [resultado.insertId, horario],
+      );
+    }
+
+    await new Promise((resolve, reject) =>
+      conexao.commit((error) => (error ? reject(error) : resolve())),
+    );
+    transacaoIniciada = false;
+    return res.status(201).json({ id: resultado.insertId, message: "Medicamento adicionado." });
+  } catch (error) {
+    if (transacaoIniciada) {
+      await new Promise((resolve) => conexao.rollback(() => resolve()));
+    }
+    console.error("Erro ao cadastrar medicamento:", error);
+    return res.status(500).json({ error: "Erro ao cadastrar medicamento." });
+  } finally {
+    if (conexao) conexao.end();
+  }
+}
+
+async function removerMedicamento(req, res) {
+  const usuarioId = req.user?.id;
+  const tipo = tipoUsuario(req);
+  const { id: pacienteId, medicamentoId } = req.params;
+
+  if (tipo !== "responsavel") {
+    return res.status(403).json({ error: "Somente o responsável pode remover medicamentos." });
+  }
+
+  try {
+    if (!(await usuarioTemAcessoAoPaciente(usuarioId, tipo, pacienteId))) {
+      return res.status(403).json({ error: "Usuário sem acesso ao paciente." });
+    }
+    const resultado = await executarConsulta(
+      "DELETE FROM medicamento WHERE id = ? AND paciente_id = ?",
+      [medicamentoId, pacienteId],
+    );
+    if (!resultado.affectedRows) {
+      return res.status(404).json({ error: "Medicamento não encontrado." });
+    }
+    return res.status(204).send();
+  } catch (error) {
+    console.error("Erro ao remover medicamento:", error);
+    return res.status(500).json({ error: "Erro ao remover medicamento." });
+  }
+}
+
+async function adicionarEstoque(req, res) {
+  const usuarioId = req.user?.id;
+  const tipo = tipoUsuario(req);
+  const { id: pacienteId, medicamentoId } = req.params;
+  const quantidade = Number(req.body.quantidade);
+
+  if (tipo !== "responsavel") {
+    return res.status(403).json({ error: "Somente o responsável pode adicionar estoque." });
+  }
+  if (!Number.isSafeInteger(quantidade) || quantidade <= 0 || quantidade > 1000000) {
+    return res.status(400).json({ error: "Informe uma quantidade maior que zero." });
+  }
+
+  try {
+    if (!(await usuarioTemAcessoAoPaciente(usuarioId, tipo, pacienteId))) {
+      return res.status(403).json({ error: "Usuário sem acesso ao paciente." });
+    }
+    const resultado = await executarConsulta(
+      `UPDATE medicamento
+          SET quantidade_comprimidos = quantidade_comprimidos + ?
+        WHERE id = ? AND paciente_id = ?`,
+      [quantidade, medicamentoId, pacienteId],
+    );
+    if (!resultado.affectedRows) {
+      return res.status(404).json({ error: "Medicamento não encontrado." });
+    }
+    return res.json({ message: "Estoque atualizado." });
+  } catch (error) {
+    console.error("Erro ao adicionar estoque:", error);
+    return res.status(500).json({ error: "Erro ao adicionar estoque." });
+  }
+}
+
+async function registrarAdministracao(req, res) {
+  const usuarioId = req.user?.id;
+  const tipo = tipoUsuario(req);
+  const { id: pacienteId, medicamentoId, horarioId } = req.params;
+  const { data } = req.body;
+
+  if (tipo !== "cuidador") {
+    return res.status(403).json({ error: "Somente o cuidador pode registrar uma dose." });
+  }
+  if (!dataValida(data)) {
+    return res.status(400).json({ error: "Informe uma data válida." });
+  }
+  if (data !== dataAtualLocal()) {
+    return res.status(400).json({ error: "Só é possível registrar doses do dia atual." });
+  }
+
+  let transacaoIniciada = false;
+  let conexao;
+  try {
+    if (!(await usuarioTemAcessoAoPaciente(usuarioId, tipo, pacienteId))) {
+      return res.status(403).json({ error: "Usuário sem acesso ao paciente." });
+    }
+
+    conexao = db.criarConexaoTransacional();
+    await new Promise((resolve, reject) =>
+      conexao.beginTransaction((error) => {
+        if (error) return reject(error);
+        transacaoIniciada = true;
+        return resolve();
+      }),
+    );
+
+    const horario = await executarConsultaNaConexao(
+      conexao,
+      `SELECT h.id
+         FROM medicamento_horario h
+         JOIN medicamento m ON m.id = h.medicamento_id
+        WHERE h.id = ? AND m.id = ? AND m.paciente_id = ?
+        LIMIT 1`,
+      [horarioId, medicamentoId, pacienteId],
+    );
+    if (!horario.length) {
+      const erro = new Error("Horário não encontrado.");
+      erro.status = 404;
+      throw erro;
+    }
+
+    await executarConsultaNaConexao(
+      conexao,
+      `INSERT INTO administracao_medicamento
+        (medicamento_horario_id, data_referencia, administrado_por)
+       VALUES (?, ?, ?)`,
+      [horarioId, data, usuarioId],
+    );
+
+    const estoque = await executarConsultaNaConexao(
+      conexao,
+      `UPDATE medicamento
+          SET quantidade_comprimidos = quantidade_comprimidos - 1
+        WHERE id = ? AND paciente_id = ? AND quantidade_comprimidos > 0`,
+      [medicamentoId, pacienteId],
+    );
+    if (!estoque.affectedRows) {
+      const erro = new Error("Não há comprimidos disponíveis no estoque.");
+      erro.status = 409;
+      throw erro;
+    }
+
+    await new Promise((resolve, reject) =>
+      conexao.commit((error) => (error ? reject(error) : resolve())),
+    );
+    transacaoIniciada = false;
+    return res.status(201).json({ message: "Dose registrada e estoque atualizado." });
+  } catch (error) {
+    if (transacaoIniciada) {
+      await new Promise((resolve) => conexao.rollback(() => resolve()));
+    }
+    if (error.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({ error: "Esta dose já foi registrada hoje." });
+    }
+    if (error.status) return res.status(error.status).json({ error: error.message });
+    console.error("Erro ao registrar dose:", error);
+    return res.status(500).json({ error: "Erro ao registrar dose." });
+  } finally {
+    if (conexao) conexao.end();
+  }
 }
 
 function atualizarPerfil(req, res) {
@@ -908,4 +1240,9 @@ module.exports = {
   getPerfil,
   atualizarPerfil,
   alterarSenha,
+  getMedicamentos,
+  cadastrarMedicamento,
+  removerMedicamento,
+  adicionarEstoque,
+  registrarAdministracao,
 };

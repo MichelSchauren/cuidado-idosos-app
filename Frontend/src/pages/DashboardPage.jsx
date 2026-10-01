@@ -58,7 +58,7 @@ function DashboardPage() {
     }
 
     carregarDados();
-  }, []);
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -99,12 +99,14 @@ function DashboardPage() {
               </span>
             </Link>
 
-            <Link
-              to="/add-paciente"
-              className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700"
-            >
-              <Plus className="h-3.5 w-3.5" /> Novo paciente
-            </Link>
+            {perfil?.tipo_usuario === "responsavel" && (
+              <Link
+                to="/add-paciente"
+                className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700"
+              >
+                <Plus className="h-3.5 w-3.5" /> Novo paciente
+              </Link>
+            )}
           </div>
         </div>
       </header>

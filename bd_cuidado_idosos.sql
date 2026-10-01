@@ -75,6 +75,47 @@ CREATE TABLE `paciente` (
   `foto` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `medicamento`
+--
+
+CREATE TABLE `medicamento` (
+  `id` bigint(20) NOT NULL,
+  `paciente_id` bigint(20) NOT NULL,
+  `nome` varchar(150) NOT NULL,
+  `quantidade_comprimidos` int(10) unsigned NOT NULL DEFAULT 0,
+  `criado_por` bigint(20) NOT NULL,
+  `criado_em` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `medicamento_horario`
+--
+
+CREATE TABLE `medicamento_horario` (
+  `id` bigint(20) NOT NULL,
+  `medicamento_id` bigint(20) NOT NULL,
+  `horario` time NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `administracao_medicamento`
+--
+
+CREATE TABLE `administracao_medicamento` (
+  `id` bigint(20) NOT NULL,
+  `medicamento_horario_id` bigint(20) NOT NULL,
+  `data_referencia` date NOT NULL,
+  `administrado_por` bigint(20) NOT NULL,
+  `administrado_em` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 --
 -- Despejando dados para a tabela `paciente`
 --
@@ -179,6 +220,29 @@ ALTER TABLE `paciente`
   ADD UNIQUE KEY `cpf` (`cpf`);
 
 --
+-- Índices de tabela `medicamento`
+--
+ALTER TABLE `medicamento`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `paciente_id` (`paciente_id`),
+  ADD KEY `criado_por` (`criado_por`);
+
+--
+-- Índices de tabela `medicamento_horario`
+--
+ALTER TABLE `medicamento_horario`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `medicamento_horario_unico` (`medicamento_id`,`horario`);
+
+--
+-- Índices de tabela `administracao_medicamento`
+--
+ALTER TABLE `administracao_medicamento`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `dose_diaria_unica` (`medicamento_horario_id`,`data_referencia`),
+  ADD KEY `administrado_por` (`administrado_por`);
+
+--
 -- Índices de tabela `responsavel`
 --
 ALTER TABLE `responsavel`
@@ -225,6 +289,24 @@ ALTER TABLE `paciente`
   MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
+-- AUTO_INCREMENT de tabela `medicamento`
+--
+ALTER TABLE `medicamento`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT de tabela `medicamento_horario`
+--
+ALTER TABLE `medicamento_horario`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT de tabela `administracao_medicamento`
+--
+ALTER TABLE `administracao_medicamento`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT de tabela `responsavel`
 --
 ALTER TABLE `responsavel`
@@ -258,6 +340,20 @@ ALTER TABLE `cuidador`
 ALTER TABLE `cuidador_paciente`
   ADD CONSTRAINT `cuidador_paciente_ibfk_1` FOREIGN KEY (`cuidador_id`) REFERENCES `cuidador` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `cuidador_paciente_ibfk_2` FOREIGN KEY (`paciente_id`) REFERENCES `paciente` (`id`) ON DELETE CASCADE;
+
+--
+-- Restrições para tabelas de medicamentos
+--
+ALTER TABLE `medicamento`
+  ADD CONSTRAINT `medicamento_ibfk_1` FOREIGN KEY (`paciente_id`) REFERENCES `paciente` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `medicamento_ibfk_2` FOREIGN KEY (`criado_por`) REFERENCES `usuario` (`id`);
+
+ALTER TABLE `medicamento_horario`
+  ADD CONSTRAINT `medicamento_horario_ibfk_1` FOREIGN KEY (`medicamento_id`) REFERENCES `medicamento` (`id`) ON DELETE CASCADE;
+
+ALTER TABLE `administracao_medicamento`
+  ADD CONSTRAINT `administracao_medicamento_ibfk_1` FOREIGN KEY (`medicamento_horario_id`) REFERENCES `medicamento_horario` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `administracao_medicamento_ibfk_2` FOREIGN KEY (`administrado_por`) REFERENCES `usuario` (`id`);
 
 --
 -- Restrições para tabelas `responsavel`
