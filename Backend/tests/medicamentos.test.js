@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const controller = require("../controllers/usuarioController");
+const db = require("../config/db");
 
 function resposta() {
   return {
@@ -83,4 +84,33 @@ test("cadastro rejeita horário inválido antes de acessar o banco", async () =>
     res,
   );
   assert.equal(res.statusCode, 400);
+});
+
+test("lista pacientes mesmo quando a tabela de medicamentos não existe", () => {
+  const consultaOriginal = db.query;
+  db.query = (sql, _parametros, callback) => {
+    if (sql.includes("FROM responsavel_paciente")) {
+      callback(null, [{ id: 7, nome: "Paciente de teste" }]);
+      return;
+    }
+
+    const erro = new Error("Tabela medicamento não encontrada");
+    erro.code = "ER_NO_SUCH_TABLE";
+    callback(erro);
+  };
+
+  try {
+    const res = resposta();
+    controller.getPacientes(
+      { user: { id: 2, tipo_usuario: "responsavel" } },
+      res,
+    );
+
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(res.body, [
+      { id: 7, nome: "Paciente de teste", estoque_baixo: 0 },
+    ]);
+  } finally {
+    db.query = consultaOriginal;
+  }
 });

@@ -1,14 +1,13 @@
-import { Phone, ChevronRight, Package, AlertTriangle } from "lucide-react";
+import { Phone, ChevronRight, Package } from "lucide-react";
 import { Link } from "react-router-dom";
 import FotoPerfil from "./FotoPerfil";
 
 function ListaPacientes({ pacientes }) {
-  const estoqueAlerta = true;
-  const prescSuspensa = true;
-
   function calcIdade(nascimento) {
+    if (!nascimento) return null;
     const data = new Date();
     const nasc = new Date(nascimento);
+    if (Number.isNaN(nasc.getTime())) return null;
 
     let idade = data.getFullYear() - nasc.getFullYear();
     if (
@@ -45,19 +44,16 @@ function ListaPacientes({ pacientes }) {
                 <h3 className="truncate text-base font-semibold text-slate-900">
                   {paciente.nome}
                 </h3>
-                {estoqueAlerta && (
+                {Number(paciente.estoque_baixo) === 1 && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
                     <Package className="h-3 w-3" /> Estoque baixo
                   </span>
                 )}
-                {prescSuspensa && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
-                    <AlertTriangle className="h-3 w-3" /> Med. suspenso
-                  </span>
-                )}
               </div>
               <p className="mt-1 text-sm text-slate-500">
-                {calcIdade(paciente.data_nascimento)} anos · CPF {paciente.cpf}
+                {calcIdade(paciente.data_nascimento) !== null &&
+                  `${calcIdade(paciente.data_nascimento)} anos · `}
+                CPF {paciente.cpf}
               </p>
               {paciente.telefone && (
                 <p className="mt-1 flex items-center gap-1 text-xs text-slate-500">

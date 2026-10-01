@@ -86,6 +86,19 @@ function executarConsultaNaConexao(conexao, sql, parametros) {
   });
 }
 
+function abrirTransacaoExclusiva() {
+  const conexao = db.criarConexaoTransacional();
+  return new Promise((resolve, reject) => {
+    conexao.beginTransaction((err) => {
+      if (err) {
+        conexao.end();
+        return reject(err);
+      }
+      return resolve(conexao);
+    });
+  });
+}
+
 const relacoesPaciente = {
   responsavel: {
     tabelaPerfil: "responsavel",
@@ -233,84 +246,69 @@ async function cadastrar(req, res) {
       .json({ error: "Cadastro permitido apenas para maiores de 18 anos." });
   }
 
+  let conexao;
+  let transacaoIniciada = false;
+
   try {
     const hash = await bcrypt.hash(senha, 10); // incriptar senha
     const date = new Date();
+    conexao = await abrirTransacaoExclusiva();
+    transacaoIniciada = true;
 
-    db.beginTransaction((err) => {
-      if (err) return res.status(500).json({ error: err.message });
+    const usuarioResult = await executarConsultaNaConexao(
+      conexao,
+      "INSERT INTO usuario (id, login, senha, email, tipo_usuario, ativo, criado_em, foto_perfil) VALUES (DEFAULT, ?, ?, ?, ?, 1, ?, ?)",
+      [loginNormalizado, hash, emailNormalizado, tipo, date, fotoPerfil],
+    );
 
-      const sql =
-        "INSERT INTO usuario (id, login, senha, email, tipo_usuario, ativo, criado_em, foto_perfil) VALUES (DEFAULT, ?, ?, ?, ?, 1, ?, ?)";
-      db.query(
-        sql,
-        [loginNormalizado, hash, emailNormalizado, tipo, date, fotoPerfil],
-        (err, data) => {
-          if (err) {
-            removerFoto(req.file);
-            return db.rollback(() => {
-              if (err.code === "ER_DUP_ENTRY") {
-                return res
-                  .status(409)
-                  .json({ error: "Usuário ou e-mail já cadastrado." });
-              }
-              return res.status(500).json({ error: err.message });
-            });
-          }
+    const sqlPerfil =
+      tipo === "responsavel"
+        ? "INSERT INTO responsavel (id, usuario_id, nome, cpf, telefone, data_nascimento, sexo) VALUES (DEFAULT, ?, ?, ?, ?, ?, ?)"
+        : "INSERT INTO cuidador (id, usuario_id, nome, sexo, telefone, cpf, data_nascimento, especializacao) VALUES (DEFAULT, ?, ?, ?, ?, ?, ?, ?)";
+    const parametrosPerfil =
+      tipo === "responsavel"
+        ? [
+            usuarioResult.insertId,
+            nome || null,
+            cpf || null,
+            telefone || null,
+            data_nascimento || null,
+            sexo || null,
+          ]
+        : [
+            usuarioResult.insertId,
+            nome || null,
+            sexo || null,
+            telefone || null,
+            cpf || null,
+            data_nascimento || null,
+            especializacao || null,
+          ];
 
-          const userId = data.insertId;
-          const sql2 =
-            tipo === "responsavel"
-              ? "INSERT INTO responsavel (id, usuario_id, nome, cpf, telefone, data_nascimento, sexo) VALUES (DEFAULT, ?, ?, ?, ?, ?, ?)"
-              : "INSERT INTO cuidador (id, usuario_id, nome, sexo, telefone, cpf, data_nascimento, especializacao) VALUES (DEFAULT, ?, ?, ?, ?, ?, ?, ?)";
-          const params =
-            tipo === "responsavel"
-              ? [
-                  userId,
-                  nome || null,
-                  cpf || null,
-                  telefone || null,
-                  data_nascimento || null,
-                  sexo || null,
-                ]
-              : [
-                  userId,
-                  nome || null,
-                  sexo || null,
-                  telefone || null,
-                  cpf || null,
-                  data_nascimento || null,
-                  especializacao || null,
-                ];
+    await executarConsultaNaConexao(conexao, sqlPerfil, parametrosPerfil);
+    await new Promise((resolve, reject) => {
+      conexao.commit((err) => (err ? reject(err) : resolve()));
+    });
+    transacaoIniciada = false;
 
-          db.query(sql2, params, (err) => {
-            if (err) {
-              removerFoto(req.file);
-              return db.rollback(() =>
-                res.status(500).json({ error: err.message }),
-              );
-            }
-
-            db.commit((err) => {
-              if (err) {
-                removerFoto(req.file);
-                return db.rollback(() =>
-                  res.status(500).json({ error: err.message }),
-                );
-              }
-
-              res.status(201).json({
-                mensagem: "Usuário criado",
-                foto_perfil: fotoPerfil,
-              });
-            });
-          });
-        },
-      );
+    return res.status(201).json({
+      mensagem: "Usuário criado",
+      foto_perfil: fotoPerfil,
     });
   } catch (error) {
-    console.log(error.menssage);
+    if (transacaoIniciada) {
+      await new Promise((resolve) => conexao.rollback(() => resolve()));
+    }
+    removerFoto(req.file);
+    if (error.code === "ER_DUP_ENTRY") {
+      return res
+        .status(409)
+        .json({ error: "Usuário ou e-mail já cadastrado." });
+    }
+    console.error("Erro ao cadastrar usuário:", error);
     return res.status(500).json({ error: error.message });
+  } finally {
+    if (conexao) conexao.end();
   }
 }
 
@@ -329,12 +327,7 @@ function getPacientes(req, res) {
     }
 
     const sql = `
-      SELECT p.*,
-             EXISTS (
-               SELECT 1 FROM medicamento m
-               WHERE m.paciente_id = p.id
-                 AND m.quantidade_comprimidos <= 5
-             ) AS estoque_baixo
+      SELECT p.*
       FROM ${userTipo}_paciente x
       JOIN ${userTipo} perfil ON perfil.id = x.${userTipo}_id
       JOIN paciente p ON x.paciente_id = p.id
@@ -346,7 +339,48 @@ function getPacientes(req, res) {
         return res.status(500).json({ error: "Erro interno do servidor." });
       }
 
-      return res.json(data);
+      if (!data.length) return res.json([]);
+
+      const pacienteIds = data.map((paciente) => paciente.id);
+      db.query(
+        `SELECT paciente_id
+         FROM medicamento
+         WHERE paciente_id IN (?) AND quantidade_comprimidos <= 5
+         GROUP BY paciente_id`,
+        [pacienteIds],
+        (estoqueError, pacientesComEstoqueBaixo) => {
+          if (estoqueError) {
+            if (estoqueError.code === "ER_NO_SUCH_TABLE") {
+              console.warn(
+                "Tabela medicamento não encontrada; carregando pacientes sem indicadores de estoque.",
+              );
+              return res.json(
+                data.map((paciente) => ({ ...paciente, estoque_baixo: 0 })),
+              );
+            }
+
+            console.error(
+              "Erro ao buscar estoque dos pacientes:",
+              estoqueError,
+            );
+            return res.status(500).json({ error: "Erro interno do servidor." });
+          }
+
+          const idsComEstoqueBaixo = new Set(
+            pacientesComEstoqueBaixo.map(({ paciente_id }) =>
+              String(paciente_id),
+            ),
+          );
+          return res.json(
+            data.map((paciente) => ({
+              ...paciente,
+              estoque_baixo: Number(
+                idsComEstoqueBaixo.has(String(paciente.id)),
+              ),
+            })),
+          );
+        },
+      );
     });
   }
 
@@ -491,19 +525,16 @@ async function atualizarPaciente(req, res) {
   }
 
   let transacaoIniciada = false;
+  let conexao;
   let fotoAnterior = null;
   let fotoAtualizada = null;
 
   try {
-    await new Promise((resolve, reject) => {
-      db.beginTransaction((err) => {
-        if (err) return reject(err);
-        transacaoIniciada = true;
-        return resolve();
-      });
-    });
+    conexao = await abrirTransacaoExclusiva();
+    transacaoIniciada = true;
 
-    const pacientes = await executarConsulta(
+    const pacientes = await executarConsultaNaConexao(
+      conexao,
       `SELECT p.foto
        FROM paciente p
        JOIN ${relacao.tabelaRelacao} x ON x.paciente_id = p.id
@@ -526,7 +557,8 @@ async function atualizarPaciente(req, res) {
         ? null
         : fotoAnterior;
 
-    await executarConsulta(
+    await executarConsultaNaConexao(
+      conexao,
       `UPDATE paciente
        SET nome = ?, cpf = ?, data_nascimento = ?, telefone = ?, endereco = ?,
            status_atencao = ?, observacoes = ?, foto = ?
@@ -545,7 +577,7 @@ async function atualizarPaciente(req, res) {
     );
 
     await new Promise((resolve, reject) => {
-      db.commit((err) => (err ? reject(err) : resolve()));
+      conexao.commit((err) => (err ? reject(err) : resolve()));
     });
     transacaoIniciada = false;
 
@@ -569,7 +601,7 @@ async function atualizarPaciente(req, res) {
     });
   } catch (error) {
     if (transacaoIniciada) {
-      await new Promise((resolve) => db.rollback(() => resolve()));
+      await new Promise((resolve) => conexao.rollback(() => resolve()));
     }
     removerFoto(req.file);
 
@@ -583,6 +615,8 @@ async function atualizarPaciente(req, res) {
     return res.status(error.status || 500).json({
       error: error.status ? error.message : "Erro ao atualizar paciente.",
     });
+  } finally {
+    if (conexao) conexao.end();
   }
 }
 
@@ -609,18 +643,15 @@ async function excluirPaciente(req, res) {
   }
 
   let transacaoIniciada = false;
+  let conexao;
   let fotoPaciente = null;
 
   try {
-    await new Promise((resolve, reject) => {
-      db.beginTransaction((err) => {
-        if (err) return reject(err);
-        transacaoIniciada = true;
-        return resolve();
-      });
-    });
+    conexao = await abrirTransacaoExclusiva();
+    transacaoIniciada = true;
 
-    const pacientes = await executarConsulta(
+    const pacientes = await executarConsultaNaConexao(
+      conexao,
       `SELECT p.foto
        FROM paciente p
        JOIN ${relacao.tabelaRelacao} x ON x.paciente_id = p.id
@@ -637,10 +668,14 @@ async function excluirPaciente(req, res) {
     }
 
     fotoPaciente = pacientes[0].foto;
-    await executarConsulta("DELETE FROM paciente WHERE id = ?", [pacienteId]);
+    await executarConsultaNaConexao(
+      conexao,
+      "DELETE FROM paciente WHERE id = ?",
+      [pacienteId],
+    );
 
     await new Promise((resolve, reject) => {
-      db.commit((err) => (err ? reject(err) : resolve()));
+      conexao.commit((err) => (err ? reject(err) : resolve()));
     });
     transacaoIniciada = false;
 
@@ -648,15 +683,15 @@ async function excluirPaciente(req, res) {
     return res.json({ message: "Paciente excluído com sucesso." });
   } catch (error) {
     if (transacaoIniciada) {
-      await new Promise((resolve) => db.rollback(() => resolve()));
+      await new Promise((resolve) => conexao.rollback(() => resolve()));
     }
 
     console.error("Erro ao excluir paciente:", error);
-    return res
-      .status(error.status || 500)
-      .json({
-        error: error.status ? error.message : "Erro ao excluir paciente.",
-      });
+    return res.status(error.status || 500).json({
+      error: error.status ? error.message : "Erro ao excluir paciente.",
+    });
+  } finally {
+    if (conexao) conexao.end();
   }
 }
 
@@ -720,17 +755,14 @@ async function cadastrarPaciente(req, res) {
   }
 
   let transacaoIniciada = false;
+  let conexao;
 
   try {
-    await new Promise((resolve, reject) => {
-      db.beginTransaction((err) => {
-        if (err) return reject(err);
-        transacaoIniciada = true;
-        return resolve();
-      });
-    });
+    conexao = await abrirTransacaoExclusiva();
+    transacaoIniciada = true;
 
-    const registrosPerfil = await executarConsulta(
+    const registrosPerfil = await executarConsultaNaConexao(
+      conexao,
       `SELECT id FROM ${perfil.tabela} WHERE usuario_id = ? LIMIT 1`,
       [usuarioId],
     );
@@ -741,7 +773,8 @@ async function cadastrarPaciente(req, res) {
       throw erro;
     }
 
-    const pacienteResult = await executarConsulta(
+    const pacienteResult = await executarConsultaNaConexao(
+      conexao,
       `INSERT INTO paciente
         (nome, cpf, data_nascimento, sexo, telefone, endereco,
          status_atencao, observacoes, foto)
@@ -760,7 +793,8 @@ async function cadastrarPaciente(req, res) {
     );
 
     const relacaoParams = [registrosPerfil[0].id, pacienteResult.insertId];
-    await executarConsulta(
+    await executarConsultaNaConexao(
+      conexao,
       `INSERT INTO ${perfil.relacionamento}
         (${perfil.colunaRelacionamento}, paciente_id)
        VALUES (?, ?)`,
@@ -768,7 +802,7 @@ async function cadastrarPaciente(req, res) {
     );
 
     await new Promise((resolve, reject) => {
-      db.commit((err) => (err ? reject(err) : resolve()));
+      conexao.commit((err) => (err ? reject(err) : resolve()));
     });
     transacaoIniciada = false;
 
@@ -778,7 +812,7 @@ async function cadastrarPaciente(req, res) {
     });
   } catch (error) {
     if (transacaoIniciada) {
-      await new Promise((resolve) => db.rollback(() => resolve()));
+      await new Promise((resolve) => conexao.rollback(() => resolve()));
     }
     removerFoto(req.file);
 
@@ -792,6 +826,8 @@ async function cadastrarPaciente(req, res) {
     return res.status(error.status || 500).json({
       error: error.status ? error.message : "Erro ao cadastrar paciente.",
     });
+  } finally {
+    if (conexao) conexao.end();
   }
 }
 
@@ -895,16 +931,29 @@ async function cadastrarMedicamento(req, res) {
     : [];
 
   if (tipo !== "responsavel") {
-    return res.status(403).json({ error: "Somente o responsável pode adicionar medicamentos." });
+    return res
+      .status(403)
+      .json({ error: "Somente o responsável pode adicionar medicamentos." });
   }
   if (!nome || nome.length > 150) {
     return res.status(400).json({ error: "Informe o nome do medicamento." });
   }
-  if (!Number.isSafeInteger(quantidade) || quantidade < 0 || quantidade > 1000000) {
-    return res.status(400).json({ error: "Informe uma quantidade válida de comprimidos." });
+  if (
+    !Number.isSafeInteger(quantidade) ||
+    quantidade < 0 ||
+    quantidade > 1000000
+  ) {
+    return res
+      .status(400)
+      .json({ error: "Informe uma quantidade válida de comprimidos." });
   }
-  if (!horarios.length || horarios.some((horario) => !/^([01]\d|2[0-3]):[0-5]\d$/.test(horario))) {
-    return res.status(400).json({ error: "Informe pelo menos um horário válido." });
+  if (
+    !horarios.length ||
+    horarios.some((horario) => !/^([01]\d|2[0-3]):[0-5]\d$/.test(horario))
+  ) {
+    return res
+      .status(400)
+      .json({ error: "Informe pelo menos um horário válido." });
   }
 
   let transacaoIniciada = false;
@@ -942,7 +991,9 @@ async function cadastrarMedicamento(req, res) {
       conexao.commit((error) => (error ? reject(error) : resolve())),
     );
     transacaoIniciada = false;
-    return res.status(201).json({ id: resultado.insertId, message: "Medicamento adicionado." });
+    return res
+      .status(201)
+      .json({ id: resultado.insertId, message: "Medicamento adicionado." });
   } catch (error) {
     if (transacaoIniciada) {
       await new Promise((resolve) => conexao.rollback(() => resolve()));
@@ -960,7 +1011,9 @@ async function removerMedicamento(req, res) {
   const { id: pacienteId, medicamentoId } = req.params;
 
   if (tipo !== "responsavel") {
-    return res.status(403).json({ error: "Somente o responsável pode remover medicamentos." });
+    return res
+      .status(403)
+      .json({ error: "Somente o responsável pode remover medicamentos." });
   }
 
   try {
@@ -988,10 +1041,18 @@ async function adicionarEstoque(req, res) {
   const quantidade = Number(req.body.quantidade);
 
   if (tipo !== "responsavel") {
-    return res.status(403).json({ error: "Somente o responsável pode adicionar estoque." });
+    return res
+      .status(403)
+      .json({ error: "Somente o responsável pode adicionar estoque." });
   }
-  if (!Number.isSafeInteger(quantidade) || quantidade <= 0 || quantidade > 1000000) {
-    return res.status(400).json({ error: "Informe uma quantidade maior que zero." });
+  if (
+    !Number.isSafeInteger(quantidade) ||
+    quantidade <= 0 ||
+    quantidade > 1000000
+  ) {
+    return res
+      .status(400)
+      .json({ error: "Informe uma quantidade maior que zero." });
   }
 
   try {
@@ -1021,13 +1082,17 @@ async function registrarAdministracao(req, res) {
   const { data } = req.body;
 
   if (tipo !== "cuidador") {
-    return res.status(403).json({ error: "Somente o cuidador pode registrar uma dose." });
+    return res
+      .status(403)
+      .json({ error: "Somente o cuidador pode registrar uma dose." });
   }
   if (!dataValida(data)) {
     return res.status(400).json({ error: "Informe uma data válida." });
   }
   if (data !== dataAtualLocal()) {
-    return res.status(400).json({ error: "Só é possível registrar doses do dia atual." });
+    return res
+      .status(400)
+      .json({ error: "Só é possível registrar doses do dia atual." });
   }
 
   let transacaoIniciada = false;
@@ -1086,15 +1151,20 @@ async function registrarAdministracao(req, res) {
       conexao.commit((error) => (error ? reject(error) : resolve())),
     );
     transacaoIniciada = false;
-    return res.status(201).json({ message: "Dose registrada e estoque atualizado." });
+    return res
+      .status(201)
+      .json({ message: "Dose registrada e estoque atualizado." });
   } catch (error) {
     if (transacaoIniciada) {
       await new Promise((resolve) => conexao.rollback(() => resolve()));
     }
     if (error.code === "ER_DUP_ENTRY") {
-      return res.status(409).json({ error: "Esta dose já foi registrada hoje." });
+      return res
+        .status(409)
+        .json({ error: "Esta dose já foi registrada hoje." });
     }
-    if (error.status) return res.status(error.status).json({ error: error.message });
+    if (error.status)
+      return res.status(error.status).json({ error: error.message });
     console.error("Erro ao registrar dose:", error);
     return res.status(500).json({ error: "Erro ao registrar dose." });
   } finally {
