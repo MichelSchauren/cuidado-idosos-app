@@ -60,17 +60,52 @@ test("cuidador não pode adicionar estoque", async () => {
   assert.equal(res.statusCode, 403);
 });
 
-test("responsável não registra dose no lugar do cuidador", async () => {
-  const res = resposta();
-  await controller.registrarAdministracao(
-    {
-      user: { id: 1, tipo_usuario: "responsavel" },
-      params: { id: "1", medicamentoId: "1", horarioId: "1" },
-      body: { data: "2026-09-30" },
+test("responsável pode registrar uma dose e concluir sua tarefa", async () => {
+  const consultaOriginal = db.query;
+  const conexaoOriginal = db.criarConexaoTransacional;
+  const data = new Date();
+  const hoje = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}-${String(data.getDate()).padStart(2, "0")}`;
+
+  db.query = (_sql, _parametros, callback) => callback(null, [{ acesso: 1 }]);
+  db.criarConexaoTransacional = () => ({
+    beginTransaction(callback) {
+      callback(null);
     },
-    res,
-  );
-  assert.equal(res.statusCode, 403);
+    query(sql, _parametros, callback) {
+      if (sql.includes("SELECT h.id")) {
+        callback(null, [{ id: 1 }]);
+        return;
+      }
+      if (sql.includes("UPDATE medicamento")) {
+        callback(null, { affectedRows: 1 });
+        return;
+      }
+      callback(null, { affectedRows: 1, insertId: 1 });
+    },
+    commit(callback) {
+      callback(null);
+    },
+    rollback(callback) {
+      callback(null);
+    },
+    end() {},
+  });
+
+  const res = resposta();
+  try {
+    await controller.registrarAdministracao(
+      {
+        user: { id: 1, tipo_usuario: "responsavel" },
+        params: { id: "1", medicamentoId: "1", horarioId: "1" },
+        body: { data: hoje },
+      },
+      res,
+    );
+    assert.equal(res.statusCode, 201);
+  } finally {
+    db.query = consultaOriginal;
+    db.criarConexaoTransacional = conexaoOriginal;
+  }
 });
 
 test("cadastro rejeita horário inválido antes de acessar o banco", async () => {
@@ -113,4 +148,43 @@ test("lista pacientes mesmo quando a tabela de medicamentos não existe", () => 
   } finally {
     db.query = consultaOriginal;
   }
+});
+
+test("cuidador não pode criar tarefas manuais", async () => {
+  const res = resposta();
+  await controller.cadastrarTarefa(
+    {
+      user: { id: 2, tipo_usuario: "cuidador" },
+      params: { id: "1" },
+      body: { titulo: "Caminhada", tipo: "diaria" },
+    },
+    res,
+  );
+  assert.equal(res.statusCode, 403);
+});
+
+test("tarefa semanal exige um dia ISO válido", async () => {
+  const res = resposta();
+  await controller.cadastrarTarefa(
+    {
+      user: { id: 1, tipo_usuario: "responsavel" },
+      params: { id: "1" },
+      body: { titulo: "Caminhada", tipo: "semanal", dia_semana: 8 },
+    },
+    res,
+  );
+  assert.equal(res.statusCode, 400);
+});
+
+test("conclusão de tarefa rejeita datas diferentes de hoje", async () => {
+  const res = resposta();
+  await controller.atualizarConclusaoTarefa(
+    {
+      user: { id: 2, tipo_usuario: "cuidador" },
+      params: { id: "1", tarefaId: "1" },
+      body: { data: "2020-01-01", concluida: true },
+    },
+    res,
+  );
+  assert.equal(res.statusCode, 400);
 });

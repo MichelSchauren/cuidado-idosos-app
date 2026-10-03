@@ -57,7 +57,9 @@ function MedicamentosPaciente({ pacienteId, tipoUsuario }) {
       });
       const dados = await respostaJson(response);
       if (!response.ok) {
-        throw new Error(dados.error || "Não foi possível carregar os medicamentos.");
+        throw new Error(
+          dados.error || "Não foi possível carregar os medicamentos.",
+        );
       }
       setMedicamentos(Array.isArray(dados) ? dados : []);
     } catch (error) {
@@ -74,7 +76,9 @@ function MedicamentosPaciente({ pacienteId, tipoUsuario }) {
   function atualizarHorario(indice, valor) {
     setFormulario((atual) => ({
       ...atual,
-      horarios: atual.horarios.map((horario, i) => (i === indice ? valor : horario)),
+      horarios: atual.horarios.map((horario, i) =>
+        i === indice ? valor : horario,
+      ),
     }));
   }
 
@@ -104,9 +108,14 @@ function MedicamentosPaciente({ pacienteId, tipoUsuario }) {
         }),
       });
       const dados = await respostaJson(response);
-      if (!response.ok) throw new Error(dados.error || "Erro ao adicionar medicamento.");
+      if (!response.ok)
+        throw new Error(dados.error || "Erro ao adicionar medicamento.");
 
-      setFormulario({ nome: "", quantidade_comprimidos: "", horarios: ["08:00"] });
+      setFormulario({
+        nome: "",
+        quantidade_comprimidos: "",
+        horarios: ["08:00"],
+      });
       setMostrarFormulario(false);
       setMensagem("Medicamento adicionado com sucesso.");
       await carregarMedicamentos();
@@ -131,7 +140,8 @@ function MedicamentosPaciente({ pacienteId, tipoUsuario }) {
         headers: cabecalhosAutenticados(),
       });
       const dados = await respostaJson(response);
-      if (!response.ok) throw new Error(dados.error || "Erro ao remover medicamento.");
+      if (!response.ok)
+        throw new Error(dados.error || "Erro ao remover medicamento.");
       setMensagem("Medicamento removido.");
       await carregarMedicamentos();
     } catch (error) {
@@ -155,7 +165,8 @@ function MedicamentosPaciente({ pacienteId, tipoUsuario }) {
         body: JSON.stringify({ quantidade }),
       });
       const dados = await respostaJson(response);
-      if (!response.ok) throw new Error(dados.error || "Erro ao atualizar estoque.");
+      if (!response.ok)
+        throw new Error(dados.error || "Erro ao atualizar estoque.");
       setEstoques((atual) => ({ ...atual, [medicamentoId]: "" }));
       setMensagem(`${quantidade} comprimido(s) adicionado(s) ao estoque.`);
       await carregarMedicamentos();
@@ -179,8 +190,11 @@ function MedicamentosPaciente({ pacienteId, tipoUsuario }) {
         },
       );
       const dados = await respostaJson(response);
-      if (!response.ok) throw new Error(dados.error || "Erro ao registrar a dose.");
-      setMensagem(`Dose de ${medicamento.nome}, das ${horario.horario}, registrada.`);
+      if (!response.ok)
+        throw new Error(dados.error || "Erro ao registrar a dose.");
+      setMensagem(
+        `Dose de ${medicamento.nome}, das ${horario.horario}, registrada.`,
+      );
       await carregarMedicamentos();
     } catch (error) {
       setErro(error.message || "Erro ao registrar a dose.");
@@ -208,25 +222,38 @@ function MedicamentosPaciente({ pacienteId, tipoUsuario }) {
             onClick={() => setMostrarFormulario((valor) => !valor)}
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700"
           >
-            {mostrarFormulario ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+            {mostrarFormulario ? (
+              <X className="h-4 w-4" />
+            ) : (
+              <Plus className="h-4 w-4" />
+            )}
             {mostrarFormulario ? "Cancelar" : "Adicionar medicamento"}
           </button>
         )}
       </div>
 
       {erro && (
-        <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+        <div
+          role="alert"
+          className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"
+        >
           {erro}
         </div>
       )}
       {mensagem && (
-        <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+        <div
+          role="status"
+          className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
+        >
           {mensagem}
         </div>
       )}
 
       {responsavel && mostrarFormulario && (
-        <form onSubmit={cadastrar} className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-5">
+        <form
+          onSubmit={cadastrar}
+          className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-5"
+        >
           <h3 className="font-semibold text-slate-900">Novo medicamento</h3>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <label className="text-sm font-semibold text-slate-700">
@@ -235,7 +262,12 @@ function MedicamentosPaciente({ pacienteId, tipoUsuario }) {
                 required
                 maxLength={150}
                 value={formulario.nome}
-                onChange={(event) => setFormulario((atual) => ({ ...atual, nome: event.target.value }))}
+                onChange={(event) =>
+                  setFormulario((atual) => ({
+                    ...atual,
+                    nome: event.target.value,
+                  }))
+                }
                 className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 font-normal outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
                 placeholder="Ex.: Losartana"
               />
@@ -248,7 +280,12 @@ function MedicamentosPaciente({ pacienteId, tipoUsuario }) {
                 min="0"
                 max="1000000"
                 value={formulario.quantidade_comprimidos}
-                onChange={(event) => setFormulario((atual) => ({ ...atual, quantidade_comprimidos: event.target.value }))}
+                onChange={(event) =>
+                  setFormulario((atual) => ({
+                    ...atual,
+                    quantidade_comprimidos: event.target.value,
+                  }))
+                }
                 className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 font-normal outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
                 placeholder="Ex.: 30"
               />
@@ -256,7 +293,9 @@ function MedicamentosPaciente({ pacienteId, tipoUsuario }) {
           </div>
 
           <fieldset className="mt-4">
-            <legend className="text-sm font-semibold text-slate-700">Horários diários</legend>
+            <legend className="text-sm font-semibold text-slate-700">
+              Horários diários
+            </legend>
             <div className="mt-2 flex flex-wrap gap-2">
               {formulario.horarios.map((horario, indice) => (
                 <div key={indice} className="flex items-center gap-1">
@@ -264,24 +303,38 @@ function MedicamentosPaciente({ pacienteId, tipoUsuario }) {
                     required
                     type="time"
                     value={horario}
-                    onChange={(event) => atualizarHorario(indice, event.target.value)}
+                    onChange={(event) =>
+                      atualizarHorario(indice, event.target.value)
+                    }
                     className="rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-emerald-500"
                     aria-label={`Horário ${indice + 1}`}
                   />
                   {formulario.horarios.length > 1 && (
-                    <button type="button" onClick={() => removerHorario(indice)} className="rounded-lg p-2 text-slate-500 hover:bg-rose-100 hover:text-rose-700" aria-label={`Remover horário ${indice + 1}`}>
+                    <button
+                      type="button"
+                      onClick={() => removerHorario(indice)}
+                      className="rounded-lg p-2 text-slate-500 hover:bg-rose-100 hover:text-rose-700"
+                      aria-label={`Remover horário ${indice + 1}`}
+                    >
                       <X className="h-4 w-4" />
                     </button>
                   )}
                 </div>
               ))}
-              <button type="button" onClick={adicionarHorario} className="inline-flex items-center gap-1 rounded-xl border border-emerald-300 bg-white px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50">
+              <button
+                type="button"
+                onClick={adicionarHorario}
+                className="inline-flex items-center gap-1 rounded-xl border border-emerald-300 bg-white px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50"
+              >
                 <Plus className="h-4 w-4" /> Outro horário
               </button>
             </div>
           </fieldset>
 
-          <button disabled={salvando} className="mt-5 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-60">
+          <button
+            disabled={salvando}
+            className="mt-5 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-60"
+          >
             {salvando ? "Salvando..." : "Salvar medicamento"}
           </button>
         </form>
@@ -292,9 +345,13 @@ function MedicamentosPaciente({ pacienteId, tipoUsuario }) {
       ) : medicamentos.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white py-14 text-center">
           <Pill className="mx-auto h-8 w-8 text-slate-300" />
-          <p className="mt-3 font-semibold text-slate-700">Nenhum medicamento cadastrado</p>
+          <p className="mt-3 font-semibold text-slate-700">
+            Nenhum medicamento cadastrado
+          </p>
           <p className="mt-1 text-sm text-slate-500">
-            {responsavel ? "Use o botão acima para adicionar o primeiro." : "O responsável ainda não adicionou medicamentos."}
+            {responsavel
+              ? "Use o botão acima para adicionar o primeiro."
+              : "O responsável ainda não adicionou medicamentos."}
           </p>
         </div>
       ) : (
@@ -302,17 +359,30 @@ function MedicamentosPaciente({ pacienteId, tipoUsuario }) {
           {medicamentos.map((medicamento) => {
             const semEstoque = medicamento.quantidade_comprimidos === 0;
             return (
-              <article key={medicamento.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <article
+                key={medicamento.id}
+                className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+              >
                 <div className="flex items-start justify-between gap-4 border-b border-slate-100 p-5">
                   <div className="min-w-0">
-                    <h3 className="break-words text-lg font-semibold text-slate-900">{medicamento.nome}</h3>
-                    <p className={`mt-1 inline-flex items-center gap-1.5 text-sm font-semibold ${semEstoque ? "text-rose-700" : "text-emerald-700"}`}>
+                    <h3 className="break-words text-lg font-semibold text-slate-900">
+                      {medicamento.nome}
+                    </h3>
+                    <p
+                      className={`mt-1 inline-flex items-center gap-1.5 text-sm font-semibold ${semEstoque ? "text-rose-700" : "text-emerald-700"}`}
+                    >
                       {semEstoque && <AlertTriangle className="h-4 w-4" />}
-                      {medicamento.quantidade_comprimidos} comprimido(s) disponível(is)
+                      {medicamento.quantidade_comprimidos} comprimido(s)
+                      disponível(is)
                     </p>
                   </div>
                   {responsavel && (
-                    <button type="button" onClick={() => remover(medicamento)} className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-700" aria-label={`Remover ${medicamento.nome}`}>
+                    <button
+                      type="button"
+                      onClick={() => remover(medicamento)}
+                      className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-700"
+                      aria-label={`Remover ${medicamento.nome}`}
+                    >
                       <Trash2 className="h-5 w-5" />
                     </button>
                   )}
@@ -324,16 +394,31 @@ function MedicamentosPaciente({ pacienteId, tipoUsuario }) {
                   </p>
                   <div className="mt-3 space-y-2">
                     {medicamento.horarios.map((horario) => (
-                      <label key={horario.id} className={`flex items-center justify-between rounded-xl border px-3 py-3 ${horario.administrado ? "border-emerald-200 bg-emerald-50" : "border-slate-200"}`}>
-                        <span className="font-semibold text-slate-800">{horario.horario}</span>
+                      <label
+                        key={horario.id}
+                        className={`flex items-center justify-between rounded-xl border px-3 py-3 ${horario.administrado ? "border-emerald-200 bg-emerald-50" : "border-slate-200"}`}
+                      >
+                        <span className="font-semibold text-slate-800">
+                          {horario.horario}
+                        </span>
                         <span className="flex items-center gap-2 text-sm text-slate-600">
-                          {horario.administrado ? "Dose administrada" : semEstoque ? "Sem estoque" : "Aguardando"}
-                          {cuidador ? (
+                          {horario.administrado
+                            ? "Dose administrada"
+                            : semEstoque
+                              ? "Sem estoque"
+                              : "Aguardando"}
+                          {cuidador || responsavel ? (
                             <input
                               type="checkbox"
                               checked={horario.administrado}
-                              disabled={horario.administrado || semEstoque || doseEmAndamento === horario.id}
-                              onChange={() => registrarDose(medicamento, horario)}
+                              disabled={
+                                horario.administrado ||
+                                semEstoque ||
+                                doseEmAndamento === horario.id
+                              }
+                              onChange={() =>
+                                registrarDose(medicamento, horario)
+                              }
                               className="h-5 w-5 rounded border-slate-300 accent-emerald-600"
                               aria-label={`Registrar dose de ${medicamento.nome} às ${horario.horario}`}
                             />
@@ -352,12 +437,21 @@ function MedicamentosPaciente({ pacienteId, tipoUsuario }) {
                         min="1"
                         max="1000000"
                         value={estoques[medicamento.id] || ""}
-                        onChange={(event) => setEstoques((atual) => ({ ...atual, [medicamento.id]: event.target.value }))}
+                        onChange={(event) =>
+                          setEstoques((atual) => ({
+                            ...atual,
+                            [medicamento.id]: event.target.value,
+                          }))
+                        }
                         className="min-w-0 flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500"
                         placeholder="Quantidade para repor"
                         aria-label={`Quantidade para adicionar ao estoque de ${medicamento.nome}`}
                       />
-                      <button type="button" onClick={() => adicionarEstoque(medicamento.id)} className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-300 px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50">
+                      <button
+                        type="button"
+                        onClick={() => adicionarEstoque(medicamento.id)}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-300 px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50"
+                      >
                         <PackagePlus className="h-4 w-4" /> Adicionar estoque
                       </button>
                     </div>

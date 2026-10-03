@@ -980,10 +980,25 @@ async function cadastrarMedicamento(req, res) {
     );
 
     for (const horario of horarios.sort()) {
-      await executarConsultaNaConexao(
+      const horarioResult = await executarConsultaNaConexao(
         conexao,
         "INSERT INTO medicamento_horario (medicamento_id, horario) VALUES (?, ?)",
         [resultado.insertId, horario],
+      );
+
+      await executarConsultaNaConexao(
+        conexao,
+        `INSERT INTO tarefa
+          (paciente_id, titulo, descricao, tipo, dia_semana, data_especifica,
+           origem, medicamento_horario_id, criado_por, ativo)
+         VALUES (?, ?, ?, 'diaria', NULL, NULL, 'medicamento', ?, ?, 1)`,
+        [
+          pacienteId,
+          `Administrar ${nome} às ${horario}`.slice(0, 150),
+          `Administrar ${nome} conforme a prescrição.`,
+          horarioResult.insertId,
+          usuarioId,
+        ],
       );
     }
 
@@ -1081,10 +1096,12 @@ async function registrarAdministracao(req, res) {
   const { id: pacienteId, medicamentoId, horarioId } = req.params;
   const { data } = req.body;
 
-  if (tipo !== "cuidador") {
+  if (tipo !== "cuidador" && tipo !== "responsavel") {
     return res
       .status(403)
-      .json({ error: "Somente o cuidador pode registrar uma dose." });
+      .json({
+        error: "Somente o responsável ou cuidador pode registrar uma dose.",
+      });
   }
   if (!dataValida(data)) {
     return res.status(400).json({ error: "Informe uma data válida." });
@@ -1147,6 +1164,23 @@ async function registrarAdministracao(req, res) {
       throw erro;
     }
 
+    await executarConsultaNaConexao(
+      conexao,
+      `INSERT INTO tarefa_ocorrencia
+        (tarefa_id, data_referencia, concluida, concluida_por, concluida_em)
+       SELECT t.id, ?, 1, ?, CURRENT_TIMESTAMP
+         FROM tarefa t
+        WHERE t.paciente_id = ?
+          AND t.origem = 'medicamento'
+          AND t.medicamento_horario_id = ?
+          AND t.ativo = 1
+       ON DUPLICATE KEY UPDATE
+         concluida = VALUES(concluida),
+         concluida_por = VALUES(concluida_por),
+         concluida_em = VALUES(concluida_em)`,
+      [data, usuarioId, pacienteId, horarioId],
+    );
+
     await new Promise((resolve, reject) =>
       conexao.commit((error) => (error ? reject(error) : resolve())),
     );
@@ -1169,6 +1203,202 @@ async function registrarAdministracao(req, res) {
     return res.status(500).json({ error: "Erro ao registrar dose." });
   } finally {
     if (conexao) conexao.end();
+  }
+}
+
+async function getTarefas(req, res) {
+  const usuarioId = req.user?.id;
+  const tipo = tipoUsuario(req);
+  const pacienteId = req.params.id;
+  const data = req.query.data || dataAtualLocal();
+
+  if (!dataValida(data)) {
+    return res.status(400).json({ error: "Informe uma data válida." });
+  }
+
+  try {
+    if (!(await usuarioTemAcessoAoPaciente(usuarioId, tipo, pacienteId))) {
+      return res.status(403).json({ error: "Usuário sem acesso ao paciente." });
+    }
+
+    const tarefas = await executarConsulta(
+      `SELECT t.id, t.titulo, t.descricao, t.tipo, t.dia_semana,
+              t.data_especifica, t.origem, t.medicamento_horario_id,
+              mh.horario AS horario,
+              m.id AS medicamento_id,
+              COALESCE(o.concluida, 0) AS concluida
+         FROM tarefa t
+         LEFT JOIN tarefa_ocorrencia o
+           ON o.tarefa_id = t.id AND o.data_referencia = ?
+         LEFT JOIN medicamento_horario mh
+           ON mh.id = t.medicamento_horario_id
+         LEFT JOIN medicamento m ON m.id = mh.medicamento_id
+        WHERE t.paciente_id = ?
+          AND t.ativo = 1
+          AND (
+            t.tipo = 'diaria'
+            OR (t.tipo = 'semanal' AND t.dia_semana = WEEKDAY(?) + 1)
+            OR (t.tipo = 'unica' AND t.data_especifica = ?)
+          )
+        ORDER BY (mh.horario IS NULL), mh.horario, t.titulo`,
+      [data, pacienteId, data, data],
+    );
+
+    return res.json(
+      tarefas.map((tarefa) => ({
+        ...tarefa,
+        concluida: Boolean(tarefa.concluida),
+      })),
+    );
+  } catch (error) {
+    console.error("Erro ao buscar tarefas:", error);
+    return res.status(500).json({ error: "Erro ao buscar tarefas." });
+  }
+}
+
+async function cadastrarTarefa(req, res) {
+  const usuarioId = req.user?.id;
+  const tipoUsuarioAtual = tipoUsuario(req);
+  const pacienteId = req.params.id;
+  const titulo =
+    typeof req.body.titulo === "string" ? req.body.titulo.trim() : "";
+  const descricao =
+    typeof req.body.descricao === "string" ? req.body.descricao.trim() : "";
+  const tipo = req.body.tipo;
+  const diaSemana = Number(req.body.dia_semana);
+  const dataEspecifica = req.body.data_especifica || null;
+
+  if (tipoUsuarioAtual !== "responsavel") {
+    return res
+      .status(403)
+      .json({ error: "Somente o responsável pode adicionar tarefas." });
+  }
+  if (!titulo || titulo.length > 150) {
+    return res
+      .status(400)
+      .json({ error: "Informe um título de até 150 caracteres." });
+  }
+  if (!["diaria", "semanal", "unica"].includes(tipo)) {
+    return res.status(400).json({ error: "Selecione a frequência da tarefa." });
+  }
+  if (
+    tipo === "semanal" &&
+    (!Number.isInteger(diaSemana) || diaSemana < 1 || diaSemana > 7)
+  ) {
+    return res
+      .status(400)
+      .json({ error: "Selecione um dia da semana válido." });
+  }
+  if (tipo === "unica" && !dataValida(dataEspecifica)) {
+    return res
+      .status(400)
+      .json({ error: "Selecione uma data válida para a tarefa." });
+  }
+  if (tipo === "unica" && dataEspecifica < dataAtualLocal()) {
+    return res
+      .status(400)
+      .json({ error: "A data da tarefa não pode estar no passado." });
+  }
+
+  try {
+    if (
+      !(await usuarioTemAcessoAoPaciente(
+        usuarioId,
+        tipoUsuarioAtual,
+        pacienteId,
+      ))
+    ) {
+      return res.status(403).json({ error: "Usuário sem acesso ao paciente." });
+    }
+
+    const resultado = await executarConsulta(
+      `INSERT INTO tarefa
+        (paciente_id, titulo, descricao, tipo, dia_semana, data_especifica,
+         origem, medicamento_horario_id, criado_por, ativo)
+       VALUES (?, ?, ?, ?, ?, ?, 'manual', NULL, ?, 1)`,
+      [
+        pacienteId,
+        titulo,
+        descricao || null,
+        tipo,
+        tipo === "semanal" ? diaSemana : null,
+        tipo === "unica" ? dataEspecifica : null,
+        usuarioId,
+      ],
+    );
+
+    return res.status(201).json({
+      id: resultado.insertId,
+      message: "Tarefa adicionada com sucesso.",
+    });
+  } catch (error) {
+    console.error("Erro ao cadastrar tarefa:", error);
+    return res.status(500).json({ error: "Erro ao cadastrar tarefa." });
+  }
+}
+
+async function atualizarConclusaoTarefa(req, res) {
+  const usuarioId = req.user?.id;
+  const tipo = tipoUsuario(req);
+  const pacienteId = req.params.id;
+  const tarefaId = req.params.tarefaId;
+  const { data, concluida } = req.body;
+
+  if (!dataValida(data) || data !== dataAtualLocal()) {
+    return res
+      .status(400)
+      .json({ error: "Só é possível atualizar tarefas do dia atual." });
+  }
+  if (typeof concluida !== "boolean") {
+    return res
+      .status(400)
+      .json({ error: "Informe o estado de conclusão da tarefa." });
+  }
+
+  try {
+    if (!(await usuarioTemAcessoAoPaciente(usuarioId, tipo, pacienteId))) {
+      return res.status(403).json({ error: "Usuário sem acesso ao paciente." });
+    }
+
+    const tarefas = await executarConsulta(
+      `SELECT id
+         FROM tarefa
+        WHERE id = ? AND paciente_id = ? AND ativo = 1 AND origem = 'manual'
+          AND (
+            tipo = 'diaria'
+            OR (tipo = 'semanal' AND dia_semana = WEEKDAY(?) + 1)
+            OR (tipo = 'unica' AND data_especifica = ?)
+          )
+        LIMIT 1`,
+      [tarefaId, pacienteId, data, data],
+    );
+    if (!tarefas.length) {
+      return res
+        .status(404)
+        .json({ error: "Tarefa não encontrada para hoje." });
+    }
+
+    await executarConsulta(
+      `INSERT INTO tarefa_ocorrencia
+        (tarefa_id, data_referencia, concluida, concluida_por, concluida_em)
+       VALUES (?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         concluida = VALUES(concluida),
+         concluida_por = VALUES(concluida_por),
+         concluida_em = VALUES(concluida_em)`,
+      [
+        tarefaId,
+        data,
+        Number(concluida),
+        concluida ? usuarioId : null,
+        concluida ? new Date() : null,
+      ],
+    );
+
+    return res.json({ message: "Tarefa atualizada.", concluida });
+  } catch (error) {
+    console.error("Erro ao atualizar tarefa:", error);
+    return res.status(500).json({ error: "Erro ao atualizar tarefa." });
   }
 }
 
@@ -1315,4 +1545,7 @@ module.exports = {
   removerMedicamento,
   adicionarEstoque,
   registrarAdministracao,
+  getTarefas,
+  cadastrarTarefa,
+  atualizarConclusaoTarefa,
 };

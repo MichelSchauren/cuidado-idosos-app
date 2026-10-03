@@ -18,6 +18,7 @@ import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import startSection from "../services/startSection";
 import MedicamentosPaciente from "../components/MedicamentosPaciente";
+import TarefasPaciente from "../components/TarefasPaciente";
 
 const abas = [
   { id: "perfil", nome: "Perfil", Icone: ContactRound },
@@ -633,6 +634,11 @@ function Paciente() {
           </section>
         ) : aba === "medicamentos" ? (
           <MedicamentosPaciente
+            pacienteId={id}
+            tipoUsuario={paciente.tipo_usuario}
+          />
+        ) : aba === "tarefas" ? (
+          <TarefasPaciente
             pacienteId={id}
             tipoUsuario={paciente.tipo_usuario}
           />
