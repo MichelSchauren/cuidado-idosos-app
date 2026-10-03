@@ -60,3 +60,20 @@ INSERT INTO `administracao_medicamento` (`id`, `medicamento_horario_id`, `data_r
 
 -- (Opcional) baixa no estoque de comprimidos após a administração
 UPDATE `medicamento` SET `quantidade_comprimidos` = `quantidade_comprimidos` - 1 WHERE `id` = 1;
+
+-- Cria tarefas diárias para medicamentos e horários já cadastrados.
+INSERT INTO `tarefa`
+  (`paciente_id`, `titulo`, `descricao`, `tipo`, `dia_semana`, `data_especifica`,
+   `origem`, `medicamento_horario_id`, `criado_por`, `ativo`)
+SELECT m.`paciente_id`,
+       LEFT(CONCAT('Administrar ', m.`nome`, ' às ', TIME_FORMAT(h.`horario`, '%H:%i')), 150),
+       CONCAT('Dose diária de ', m.`nome`, '.'),
+       'diaria', NULL, NULL, 'medicamento', h.`id`, m.`criado_por`, 1
+  FROM `medicamento_horario` h
+  JOIN `medicamento` m ON m.`id` = h.`medicamento_id`
+ WHERE NOT EXISTS (
+   SELECT 1
+     FROM `tarefa` existente
+    WHERE existente.`origem` = 'medicamento'
+      AND existente.`medicamento_horario_id` = h.`id`
+ );

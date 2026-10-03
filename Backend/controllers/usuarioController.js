@@ -1097,11 +1097,9 @@ async function registrarAdministracao(req, res) {
   const { data } = req.body;
 
   if (tipo !== "cuidador" && tipo !== "responsavel") {
-    return res
-      .status(403)
-      .json({
-        error: "Somente o responsável ou cuidador pode registrar uma dose.",
-      });
+    return res.status(403).json({
+      error: "Somente o responsável ou cuidador pode registrar uma dose.",
+    });
   }
   if (!dataValida(data)) {
     return res.status(400).json({ error: "Informe uma data válida." });
@@ -1402,6 +1400,71 @@ async function atualizarConclusaoTarefa(req, res) {
   }
 }
 
+async function getDiario(req, res) {
+  const usuarioId = req.user?.id;
+  const tipo = tipoUsuario(req);
+  const pacienteId = req.params.id;
+
+  try {
+    if (!(await usuarioTemAcessoAoPaciente(usuarioId, tipo, pacienteId))) {
+      return res.status(403).json({ error: "Usuário sem acesso ao paciente." });
+    }
+
+    const registros = await executarConsulta(
+      `SELECT d.id, d.titulo, d.descricao, d.registrado_em,
+              COALESCE(r.nome, c.nome, u.login) AS registrado_por
+         FROM diario d
+         JOIN usuario u ON u.id = d.registrado_por
+         LEFT JOIN responsavel r ON r.usuario_id = u.id
+         LEFT JOIN cuidador c ON c.usuario_id = u.id
+        WHERE d.paciente_id = ?
+        ORDER BY d.registrado_em DESC, d.id DESC`,
+      [pacienteId],
+    );
+
+    return res.json(registros);
+  } catch (error) {
+    console.error("Erro ao buscar diário:", error);
+    return res.status(500).json({ error: "Erro ao buscar diário." });
+  }
+}
+
+async function cadastrarDiario(req, res) {
+  const usuarioId = req.user?.id;
+  const tipo = tipoUsuario(req);
+  const pacienteId = req.params.id;
+  const titulo =
+    typeof req.body.titulo === "string" ? req.body.titulo.trim() : "";
+  const descricao =
+    typeof req.body.descricao === "string" ? req.body.descricao.trim() : "";
+
+  if (!titulo || titulo.length > 150) {
+    return res
+      .status(400)
+      .json({ error: "Informe um título de até 150 caracteres." });
+  }
+
+  try {
+    if (!(await usuarioTemAcessoAoPaciente(usuarioId, tipo, pacienteId))) {
+      return res.status(403).json({ error: "Usuário sem acesso ao paciente." });
+    }
+
+    const resultado = await executarConsulta(
+      `INSERT INTO diario (paciente_id, titulo, descricao, registrado_por)
+       VALUES (?, ?, ?, ?)`,
+      [pacienteId, titulo, descricao || null, usuarioId],
+    );
+
+    return res.status(201).json({
+      id: resultado.insertId,
+      message: "Registro adicionado ao diário.",
+    });
+  } catch (error) {
+    console.error("Erro ao cadastrar registro no diário:", error);
+    return res.status(500).json({ error: "Erro ao adicionar ao diário." });
+  }
+}
+
 function atualizarPerfil(req, res) {
   const userId = req.user?.id;
   const { nome, email, cpf, telefone, data_nascimento, sexo } = req.body;
@@ -1548,4 +1611,6 @@ module.exports = {
   getTarefas,
   cadastrarTarefa,
   atualizarConclusaoTarefa,
+  getDiario,
+  cadastrarDiario,
 };

@@ -61,6 +61,16 @@ router.patch(
   verificarToken,
   usuarioController.atualizarConclusaoTarefa,
 );
+router.get(
+  "/pacientes/:id/diario",
+  verificarToken,
+  usuarioController.getDiario,
+);
+router.post(
+  "/pacientes/:id/diario",
+  verificarToken,
+  usuarioController.cadastrarDiario,
+);
 router.post(
   "/pacientes/:id/medicamentos",
   verificarToken,

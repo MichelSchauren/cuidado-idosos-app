@@ -19,6 +19,7 @@ import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import startSection from "../services/startSection";
 import MedicamentosPaciente from "../components/MedicamentosPaciente";
 import TarefasPaciente from "../components/TarefasPaciente";
+import DiarioPaciente from "../components/DiarioPaciente";
 
 const abas = [
   { id: "perfil", nome: "Perfil", Icone: ContactRound },
@@ -642,6 +643,8 @@ function Paciente() {
             pacienteId={id}
             tipoUsuario={paciente.tipo_usuario}
           />
+        ) : aba === "diario" ? (
+          <DiarioPaciente pacienteId={id} />
         ) : (
           <section
             role="tabpanel"
