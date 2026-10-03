@@ -124,18 +124,21 @@ VITE_SERVER="http://localhost:8081/api/"
 
 ### 4. Importar o banco de dados
 
-O arquivo `bd_cuidado_idosos.sql` está localizado no **diretório principal** do projeto.
+Os arquivos SQL ficam no diretório `Banco/`.
 
 Usando o **phpMyAdmin**:
 
 1. Acesse o phpMyAdmin (geralmente em `http://localhost/phpmyadmin`);
 2. Crie um novo banco de dados chamado `bd_cuidado_idosos`;
 3. Selecione o banco criado e clique em **Importar**;
-4. Escolha o arquivo `bd_cuidado_idosos.sql` (na raiz do projeto) e confirme a importação.
-   Alternativamente, via linha de comando:
+4. Importe `Banco/bd_cuidado_idosos.sql` e confirme.
+5. Importe `Banco/tarefas.sql` para criar as tabelas de tarefas e gerar tarefas para medicamentos já cadastrados.
+
+Alternativamente, via linha de comando:
 
 ```bash
-mysql -u root -p bd_cuidado_idosos < bd_cuidado_idosos.sql
+mysql -u root -p bd_cuidado_idosos < Banco/bd_cuidado_idosos.sql
+mysql -u root -p bd_cuidado_idosos < Banco/tarefas.sql
 ```
 
 _(crie o banco antes com `CREATE DATABASE bd_cuidado_idosos;`, caso ainda não exista)_
@@ -150,16 +153,18 @@ ALTER TABLE usuario
   ADD UNIQUE KEY email (email);
 ```
 
-Para habilitar a área de medicamentos em um banco que já existia antes desta
-funcionalidade, importe uma vez o arquivo `migracao_medicamentos.sql`. Pelo
-terminal, use:
+Para habilitar a área de medicamentos em um banco existente que ainda não tenha
+essas tabelas, importe primeiro `Banco/migracao_medicamentos.sql` e depois
+`Banco/tarefas.sql`. A migração de tarefas gera uma tarefa diária para cada
+horário de medicamento existente e é executada uma vez por banco. Pelo terminal:
 
 ```bash
-mysql -u root -p bd_cuidado_idosos < migracao_medicamentos.sql
+mysql -u root -p bd_cuidado_idosos < Banco/migracao_medicamentos.sql
+mysql -u root -p bd_cuidado_idosos < Banco/tarefas.sql
 ```
 
-O arquivo principal `bd_cuidado_idosos.sql` já contém essas tabelas para novas
-instalações.
+O arquivo principal contém as tabelas de medicamentos; `Banco/tarefas.sql` é
+necessário tanto em instalações novas quanto em bancos já existentes.
 
 ### 5. Rodar o projeto
 

@@ -46,6 +46,21 @@ router.get(
   verificarToken,
   usuarioController.getMedicamentos,
 );
+router.get(
+  "/pacientes/:id/tarefas",
+  verificarToken,
+  usuarioController.getTarefas,
+);
+router.post(
+  "/pacientes/:id/tarefas",
+  verificarToken,
+  usuarioController.cadastrarTarefa,
+);
+router.patch(
+  "/pacientes/:id/tarefas/:tarefaId",
+  verificarToken,
+  usuarioController.atualizarConclusaoTarefa,
+);
 router.post(
   "/pacientes/:id/medicamentos",
   verificarToken,
