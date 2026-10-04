@@ -51,6 +51,16 @@ router.get(
   verificarToken,
   usuarioController.getTarefas,
 );
+router.get(
+  "/pacientes/:id/consultas",
+  verificarToken,
+  usuarioController.getConsultas,
+);
+router.post(
+  "/pacientes/:id/consultas",
+  verificarToken,
+  usuarioController.cadastrarConsulta,
+);
 router.post(
   "/pacientes/:id/tarefas",
   verificarToken,
@@ -60,6 +70,16 @@ router.patch(
   "/pacientes/:id/tarefas/:tarefaId",
   verificarToken,
   usuarioController.atualizarConclusaoTarefa,
+);
+router.get(
+  "/pacientes/:id/diario",
+  verificarToken,
+  usuarioController.getDiario,
+);
+router.post(
+  "/pacientes/:id/diario",
+  verificarToken,
+  usuarioController.cadastrarDiario,
 );
 router.post(
   "/pacientes/:id/medicamentos",

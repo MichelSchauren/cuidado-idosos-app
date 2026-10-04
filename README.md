@@ -133,12 +133,14 @@ Usando o **phpMyAdmin**:
 3. Selecione o banco criado e clique em **Importar**;
 4. Importe `Banco/bd_cuidado_idosos.sql` e confirme.
 5. Importe `Banco/tarefas.sql` para criar as tabelas de tarefas e gerar tarefas para medicamentos já cadastrados.
+6. Importe `Banco/diario.sql` para criar a tabela de registros do diário.
 
 Alternativamente, via linha de comando:
 
 ```bash
 mysql -u root -p bd_cuidado_idosos < Banco/bd_cuidado_idosos.sql
 mysql -u root -p bd_cuidado_idosos < Banco/tarefas.sql
+mysql -u root -p bd_cuidado_idosos < Banco/diario.sql
 ```
 
 _(crie o banco antes com `CREATE DATABASE bd_cuidado_idosos;`, caso ainda não exista)_
@@ -165,6 +167,7 @@ mysql -u root -p bd_cuidado_idosos < Banco/tarefas.sql
 
 O arquivo principal contém as tabelas de medicamentos; `Banco/tarefas.sql` é
 necessário tanto em instalações novas quanto em bancos já existentes.
+Execute `Banco/diario.sql` uma vez para ativar o diário em qualquer instalação.
 
 ### 5. Rodar o projeto
 

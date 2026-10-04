@@ -8,6 +8,10 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import {
+  CabecalhoMarca,
+  CreditoLaboratorio,
+} from "../components/IdentidadeVisual";
 
 const campoClassName =
   "mt-2 w-full rounded-lg border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100";
@@ -76,14 +80,16 @@ function AddPaciente() {
   }
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_right,_#d1fae5,_transparent_32%),linear-gradient(135deg,_#f8fafc_0%,_#f0fdfa_100%)] px-4 py-6 sm:px-6 lg:px-8">
+    <div className="flex min-h-screen flex-col bg-[radial-gradient(circle_at_top_right,_#d1fae5,_transparent_32%),linear-gradient(135deg,_#f8fafc_0%,_#f0fdfa_100%)]">
+      <CabecalhoMarca to="/dashboard" />
+      <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl">
         <header className="mb-8">
           <Link
             to="/dashboard"
             className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-emerald-700"
           >
-            <ArrowLeft className="h-4 w-4" /> Voltar para pacientes
+            <ArrowLeft className="h-4 w-4" /> Voltar à lista
           </Link>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -361,7 +367,9 @@ function AddPaciente() {
           </footer>
         </form>
       </div>
-    </main>
+      </main>
+      <CreditoLaboratorio />
+    </div>
   );
 }
 

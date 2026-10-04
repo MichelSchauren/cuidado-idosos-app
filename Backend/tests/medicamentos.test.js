@@ -188,3 +188,78 @@ test("conclusão de tarefa rejeita datas diferentes de hoje", async () => {
   );
   assert.equal(res.statusCode, 400);
 });
+
+test("cuidador vinculado pode registrar uma anotação no diário", async () => {
+  const consultaOriginal = db.query;
+  db.query = (sql, _parametros, callback) => {
+    if (sql.includes("SELECT 1")) {
+      callback(null, [{ acesso: 1 }]);
+      return;
+    }
+    callback(null, { insertId: 9 });
+  };
+
+  try {
+    const res = resposta();
+    await controller.cadastrarDiario(
+      {
+        user: { id: 2, tipo_usuario: "cuidador" },
+        params: { id: "1" },
+        body: {
+          titulo: "Boa caminhada",
+          descricao: "Participou da atividade.",
+        },
+      },
+      res,
+    );
+
+    assert.equal(res.statusCode, 201);
+    assert.equal(res.body.id, 9);
+  } finally {
+    db.query = consultaOriginal;
+  }
+});
+
+test("responsável vinculado pode registrar uma anotação no diário", async () => {
+  const consultaOriginal = db.query;
+  let parametrosInsercao;
+  db.query = (sql, parametros, callback) => {
+    if (sql.includes("SELECT 1")) {
+      callback(null, [{ acesso: 1 }]);
+      return;
+    }
+    parametrosInsercao = parametros;
+    callback(null, { insertId: 10 });
+  };
+
+  try {
+    const res = resposta();
+    await controller.cadastrarDiario(
+      {
+        user: { id: 1, tipo_usuario: "responsavel" },
+        params: { id: "1" },
+        body: { titulo: "Consulta médica", descricao: "Retorno agendado." },
+      },
+      res,
+    );
+
+    assert.equal(res.statusCode, 201);
+    assert.equal(res.body.id, 10);
+    assert.equal(parametrosInsercao[3], 1);
+  } finally {
+    db.query = consultaOriginal;
+  }
+});
+
+test("diário exige um título", async () => {
+  const res = resposta();
+  await controller.cadastrarDiario(
+    {
+      user: { id: 1, tipo_usuario: "responsavel" },
+      params: { id: "1" },
+      body: { titulo: "  " },
+    },
+    res,
+  );
+  assert.equal(res.statusCode, 400);
+});

@@ -291,6 +291,7 @@ function TarefasPaciente({ pacienteId, tipoUsuario }) {
         <ul className="divide-y divide-slate-100">
           {tarefas.map((tarefa) => {
             const tarefaMedicamento = tarefa.origem === "medicamento";
+            const tarefaConsulta = tarefa.origem === "consulta";
             const desabilitada = tarefaMedicamento && !podeRegistrarDose;
             return (
               <li key={tarefa.id} className="flex items-start gap-3 py-4">
@@ -322,6 +323,8 @@ function TarefasPaciente({ pacienteId, tipoUsuario }) {
                       <Repeat2 className="h-3.5 w-3.5" />
                       {tarefaMedicamento
                         ? "Medicamento"
+                        : tarefaConsulta
+                          ? "Consulta"
                         : tarefa.tipo === "diaria"
                           ? "Diária"
                           : tarefa.tipo === "semanal"

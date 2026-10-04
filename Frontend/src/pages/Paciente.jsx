@@ -18,10 +18,16 @@ import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import startSection from "../services/startSection";
 import MedicamentosPaciente from "../components/MedicamentosPaciente";
+import ConsultasPaciente from "../components/ConsultasPaciente";
 import TarefasPaciente from "../components/TarefasPaciente";
+import DiarioPaciente from "../components/DiarioPaciente";
+import {
+  CabecalhoMarca,
+  CreditoLaboratorio,
+} from "../components/IdentidadeVisual";
 
 const abas = [
-  { id: "perfil", nome: "Perfil", Icone: ContactRound },
+  { id: "perfil", nome: "Resumo", Icone: ContactRound },
   { id: "medicamentos", nome: "Medicamentos", Icone: Pill },
   { id: "tarefas", nome: "Tarefas", Icone: CheckSquare },
   { id: "diario", nome: "Diário", Icone: BookOpenText },
@@ -272,14 +278,16 @@ function Paciente() {
     "border-slate-200 bg-slate-100 text-slate-700";
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_right,_#d1fae5,_transparent_30%),linear-gradient(135deg,_#f8fafc_0%,_#f0fdfa_100%)] px-4 py-6 sm:px-6 lg:px-8">
+    <div className="flex min-h-screen flex-col bg-[radial-gradient(circle_at_top_right,_#d1fae5,_transparent_30%),linear-gradient(135deg,_#f8fafc_0%,_#f0fdfa_100%)]">
+      <CabecalhoMarca to="/dashboard" />
+      <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl">
         <header className="mb-6">
           <Link
             to="/dashboard"
             className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-emerald-700"
           >
-            <ArrowLeft className="h-4 w-4" /> Voltar para pacientes
+            <ArrowLeft className="h-4 w-4" /> Voltar à lista
           </Link>
 
           {carregando ? (
@@ -305,9 +313,6 @@ function Paciente() {
                 </div>
               )}
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold uppercase text-emerald-700">
-                  Perfil do paciente
-                </p>
                 <h1 className="mt-1 break-words text-3xl font-semibold text-slate-900">
                   {paciente.nome}
                 </h1>
@@ -352,7 +357,7 @@ function Paciente() {
         ) : erro ? null : aba === "perfil" ? (
           <section
             role="tabpanel"
-            aria-label="Perfil do paciente"
+            aria-label="Resumo do paciente"
             className="rounded-lg border border-slate-200 bg-white px-5 shadow-sm sm:px-8"
           >
             <div className="flex flex-col gap-3 border-b border-slate-100 py-5 sm:flex-row sm:items-center sm:justify-between">
@@ -371,7 +376,7 @@ function Paciente() {
                     onClick={iniciarEdicao}
                     className="inline-flex w-fit items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                   >
-                    <Pencil className="h-4 w-4" /> Editar perfil
+                    <Pencil className="h-4 w-4" /> Editar dados
                   </button>
                   <button
                     type="button"
@@ -642,6 +647,13 @@ function Paciente() {
             pacienteId={id}
             tipoUsuario={paciente.tipo_usuario}
           />
+        ) : aba === "consultas" ? (
+          <ConsultasPaciente
+            pacienteId={id}
+            tipoUsuario={paciente.tipo_usuario}
+          />
+        ) : aba === "diario" ? (
+          <DiarioPaciente pacienteId={id} />
         ) : (
           <section
             role="tabpanel"
@@ -656,7 +668,9 @@ function Paciente() {
           </section>
         )}
       </div>
-    </main>
+      </main>
+      <CreditoLaboratorio />
+    </div>
   );
 }
 

@@ -11,6 +11,10 @@ import { Link, useNavigate } from "react-router-dom";
 import BotaoVisual from "../components/botaoVisual";
 import startSection from "../services/startSection";
 import CampoPerfil from "../components/campoPerfil";
+import {
+  CabecalhoMarca,
+  CreditoLaboratorio,
+} from "../components/IdentidadeVisual";
 
 const campoClassName =
   "mt-2 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100";
@@ -215,7 +219,9 @@ function PerfilUsuario() {
       : "");
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_right,_#d1fae5,_transparent_34%),linear-gradient(135deg,_#f8fafc_0%,_#ecfdf5_100%)] px-4 py-6 sm:px-6 lg:px-8">
+    <div className="flex min-h-screen flex-col bg-[radial-gradient(circle_at_top_right,_#d1fae5,_transparent_34%),linear-gradient(135deg,_#f8fafc_0%,_#ecfdf5_100%)]">
+      <CabecalhoMarca to="/dashboard" />
+      <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-5xl">
         <header className="mb-6 flex items-center justify-between gap-4">
           <div>
@@ -223,13 +229,10 @@ function PerfilUsuario() {
               to="/dashboard"
               className="mb-3 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-emerald-700"
             >
-              <ArrowLeft className="h-4 w-4" /> Voltar para o dashboard
+              <ArrowLeft className="h-4 w-4" /> Voltar para pacientes
             </Link>
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-600">
-              Minha conta
-            </p>
             <h1 className="mt-1 text-3xl font-semibold tracking-tight text-slate-900">
-              Perfil do usuário
+              Seus dados
             </h1>
             <p className="mt-2 text-sm text-slate-500">
               Mantenha seus dados atualizados para facilitar o cuidado.
@@ -551,7 +554,9 @@ function PerfilUsuario() {
           </section>
         </form>
       </div>
-    </main>
+      </main>
+      <CreditoLaboratorio />
+    </div>
   );
 }
 

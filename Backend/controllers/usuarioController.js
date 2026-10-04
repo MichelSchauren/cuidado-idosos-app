@@ -151,6 +151,16 @@ function dataAtualLocal() {
   return `${ano}-${mes}-${dia}`;
 }
 
+function dataHoraAtualLocal() {
+  const agora = new Date();
+  const ano = agora.getFullYear();
+  const mes = String(agora.getMonth() + 1).padStart(2, "0");
+  const dia = String(agora.getDate()).padStart(2, "0");
+  const hora = String(agora.getHours()).padStart(2, "0");
+  const minuto = String(agora.getMinutes()).padStart(2, "0");
+  return `${ano}-${mes}-${dia}T${hora}:${minuto}`;
+}
+
 // Login
 function login(req, res) {
   const identificador = req.body.login || req.body.email;
@@ -1097,11 +1107,9 @@ async function registrarAdministracao(req, res) {
   const { data } = req.body;
 
   if (tipo !== "cuidador" && tipo !== "responsavel") {
-    return res
-      .status(403)
-      .json({
-        error: "Somente o responsável ou cuidador pode registrar uma dose.",
-      });
+    return res.status(403).json({
+      error: "Somente o responsável ou cuidador pode registrar uma dose.",
+    });
   }
   if (!dataValida(data)) {
     return res.status(400).json({ error: "Informe uma data válida." });
@@ -1256,6 +1264,155 @@ async function getTarefas(req, res) {
   }
 }
 
+async function getConsultas(req, res) {
+  const usuarioId = req.user?.id;
+  const tipo = tipoUsuario(req);
+  const pacienteId = req.params.id;
+
+  try {
+    if (!(await usuarioTemAcessoAoPaciente(usuarioId, tipo, pacienteId))) {
+      return res.status(403).json({ error: "Usuário sem acesso ao paciente." });
+    }
+
+    const consultas = await executarConsulta(
+      `SELECT id, medico, especialidade, local,
+              DATE_FORMAT(data_hora, '%Y-%m-%dT%H:%i') AS data_hora,
+              observacoes
+         FROM consulta
+        WHERE paciente_id = ?
+        ORDER BY data_hora ASC, id ASC`,
+      [pacienteId],
+    );
+    return res.json(consultas);
+  } catch (error) {
+    console.error("Erro ao buscar consultas:", error);
+    return res.status(500).json({ error: "Erro ao buscar consultas." });
+  }
+}
+
+async function cadastrarConsulta(req, res) {
+  const usuarioId = req.user?.id;
+  const tipo = tipoUsuario(req);
+  const pacienteId = req.params.id;
+  const body = req.body || {};
+  const medico = typeof body.medico === "string" ? body.medico.trim() : "";
+  const especialidade =
+    typeof body.especialidade === "string"
+      ? body.especialidade.trim()
+      : "";
+  const local = typeof body.local === "string" ? body.local.trim() : "";
+  const dataHora = typeof body.data_hora === "string" ? body.data_hora : "";
+  const observacoes =
+    typeof body.observacoes === "string"
+      ? body.observacoes.trim()
+      : "";
+  const partesDataHora = /^(\d{4}-\d{2}-\d{2})T([01]\d|2[0-3]):[0-5]\d$/.exec(
+    dataHora,
+  );
+
+  if (tipo !== "responsavel") {
+    return res.status(403).json({
+      error: "Somente o responsável pode agendar consultas.",
+    });
+  }
+  if (!medico || medico.length > 150) {
+    return res.status(400).json({ error: "Informe o médico da consulta." });
+  }
+  if (!especialidade || especialidade.length > 100) {
+    return res
+      .status(400)
+      .json({ error: "Informe a especialidade da consulta." });
+  }
+  if (!local || local.length > 255) {
+    return res.status(400).json({ error: "Informe o local da consulta." });
+  }
+  if (
+    !partesDataHora ||
+    !dataValida(partesDataHora[1]) ||
+    dataHora < dataHoraAtualLocal()
+  ) {
+    return res.status(400).json({
+      error: "Informe uma data e hora válidas que não estejam no passado.",
+    });
+  }
+
+  let transacaoIniciada = false;
+  let conexao;
+  try {
+    if (!(await usuarioTemAcessoAoPaciente(usuarioId, tipo, pacienteId))) {
+      return res.status(403).json({ error: "Usuário sem acesso ao paciente." });
+    }
+
+    conexao = db.criarConexaoTransacional();
+    await new Promise((resolve, reject) =>
+      conexao.beginTransaction((error) => {
+        if (error) return reject(error);
+        transacaoIniciada = true;
+        return resolve();
+      }),
+    );
+
+    const dataHoraBanco = `${partesDataHora[1]} ${dataHora.slice(11)}:00`;
+    const consulta = await executarConsultaNaConexao(
+      conexao,
+      `INSERT INTO consulta
+        (paciente_id, especialidade, medico, local, data_hora, observacoes, criado_por)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        pacienteId,
+        especialidade,
+        medico,
+        local,
+        dataHoraBanco,
+        observacoes || null,
+        usuarioId,
+      ],
+    );
+    const descricao = [
+      `Médico: ${medico}`,
+      `Especialidade: ${especialidade}`,
+      `Local: ${local}`,
+      `Data e hora: ${dataHora.replace("T", " ")}`,
+      observacoes ? `Observações: ${observacoes}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    await executarConsultaNaConexao(
+      conexao,
+      `INSERT INTO tarefa
+        (paciente_id, titulo, descricao, tipo, dia_semana, data_especifica,
+         origem, medicamento_horario_id, consulta_id, criado_por, ativo)
+       VALUES (?, ?, ?, 'unica', NULL, ?, 'consulta', NULL, ?, ?, 1)`,
+      [
+        pacienteId,
+        `Consulta com ${medico}`.slice(0, 150),
+        descricao,
+        partesDataHora[1],
+        consulta.insertId,
+        usuarioId,
+      ],
+    );
+
+    await new Promise((resolve, reject) =>
+      conexao.commit((error) => (error ? reject(error) : resolve())),
+    );
+    transacaoIniciada = false;
+    return res.status(201).json({
+      id: consulta.insertId,
+      message: "Consulta agendada e tarefa criada.",
+    });
+  } catch (error) {
+    if (transacaoIniciada) {
+      await new Promise((resolve) => conexao.rollback(() => resolve()));
+    }
+    console.error("Erro ao agendar consulta:", error);
+    return res.status(500).json({ error: "Erro ao agendar consulta." });
+  } finally {
+    if (conexao) conexao.end();
+  }
+}
+
 async function cadastrarTarefa(req, res) {
   const usuarioId = req.user?.id;
   const tipoUsuarioAtual = tipoUsuario(req);
@@ -1363,7 +1520,8 @@ async function atualizarConclusaoTarefa(req, res) {
     const tarefas = await executarConsulta(
       `SELECT id
          FROM tarefa
-        WHERE id = ? AND paciente_id = ? AND ativo = 1 AND origem = 'manual'
+        WHERE id = ? AND paciente_id = ? AND ativo = 1
+          AND origem IN ('manual', 'consulta')
           AND (
             tipo = 'diaria'
             OR (tipo = 'semanal' AND dia_semana = WEEKDAY(?) + 1)
@@ -1399,6 +1557,71 @@ async function atualizarConclusaoTarefa(req, res) {
   } catch (error) {
     console.error("Erro ao atualizar tarefa:", error);
     return res.status(500).json({ error: "Erro ao atualizar tarefa." });
+  }
+}
+
+async function getDiario(req, res) {
+  const usuarioId = req.user?.id;
+  const tipo = tipoUsuario(req);
+  const pacienteId = req.params.id;
+
+  try {
+    if (!(await usuarioTemAcessoAoPaciente(usuarioId, tipo, pacienteId))) {
+      return res.status(403).json({ error: "Usuário sem acesso ao paciente." });
+    }
+
+    const registros = await executarConsulta(
+      `SELECT d.id, d.titulo, d.descricao, d.registrado_em,
+              COALESCE(r.nome, c.nome, u.login) AS registrado_por
+         FROM diario d
+         JOIN usuario u ON u.id = d.registrado_por
+         LEFT JOIN responsavel r ON r.usuario_id = u.id
+         LEFT JOIN cuidador c ON c.usuario_id = u.id
+        WHERE d.paciente_id = ?
+        ORDER BY d.registrado_em DESC, d.id DESC`,
+      [pacienteId],
+    );
+
+    return res.json(registros);
+  } catch (error) {
+    console.error("Erro ao buscar diário:", error);
+    return res.status(500).json({ error: "Erro ao buscar diário." });
+  }
+}
+
+async function cadastrarDiario(req, res) {
+  const usuarioId = req.user?.id;
+  const tipo = tipoUsuario(req);
+  const pacienteId = req.params.id;
+  const titulo =
+    typeof req.body.titulo === "string" ? req.body.titulo.trim() : "";
+  const descricao =
+    typeof req.body.descricao === "string" ? req.body.descricao.trim() : "";
+
+  if (!titulo || titulo.length > 150) {
+    return res
+      .status(400)
+      .json({ error: "Informe um título de até 150 caracteres." });
+  }
+
+  try {
+    if (!(await usuarioTemAcessoAoPaciente(usuarioId, tipo, pacienteId))) {
+      return res.status(403).json({ error: "Usuário sem acesso ao paciente." });
+    }
+
+    const resultado = await executarConsulta(
+      `INSERT INTO diario (paciente_id, titulo, descricao, registrado_por)
+       VALUES (?, ?, ?, ?)`,
+      [pacienteId, titulo, descricao || null, usuarioId],
+    );
+
+    return res.status(201).json({
+      id: resultado.insertId,
+      message: "Registro adicionado ao diário.",
+    });
+  } catch (error) {
+    console.error("Erro ao cadastrar registro no diário:", error);
+    return res.status(500).json({ error: "Erro ao adicionar ao diário." });
   }
 }
 
@@ -1548,4 +1771,8 @@ module.exports = {
   getTarefas,
   cadastrarTarefa,
   atualizarConclusaoTarefa,
+  getConsultas,
+  cadastrarConsulta,
+  getDiario,
+  cadastrarDiario,
 };
