@@ -51,6 +51,16 @@ router.get(
   verificarToken,
   usuarioController.getTarefas,
 );
+router.get(
+  "/pacientes/:id/consultas",
+  verificarToken,
+  usuarioController.getConsultas,
+);
+router.post(
+  "/pacientes/:id/consultas",
+  verificarToken,
+  usuarioController.cadastrarConsulta,
+);
 router.post(
   "/pacientes/:id/tarefas",
   verificarToken,

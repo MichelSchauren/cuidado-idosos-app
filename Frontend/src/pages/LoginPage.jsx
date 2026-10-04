@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import BotaoVisual from "../components/botaoVisual";
+import {
+  CabecalhoMarca,
+  CreditoLaboratorio,
+} from "../components/IdentidadeVisual";
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -51,14 +55,13 @@ function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-emerald-50 to-slate-100 px-4 py-10">
-      <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-xl">
+    <div className="flex min-h-screen flex-col bg-[radial-gradient(circle_at_80%_15%,_#d1fae5,_transparent_28%),linear-gradient(135deg,_#f8fafc_0%,_#ecfdf5_100%)]">
+      <CabecalhoMarca />
+      <main className="flex flex-1 items-center justify-center px-4 py-10">
+      <div className="w-full max-w-md rounded-3xl border border-white bg-white/95 p-8 shadow-2xl shadow-emerald-950/10">
         <div className="mb-6 text-center">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-600">
-            Acesso
-          </p>
           <h1 className="mt-2 text-3xl font-semibold text-slate-900">
-            Entrar na plataforma
+            Boas-vindas ao Cuidaê
           </h1>
           <p className="mt-2 text-sm text-slate-500">
             Acesse sua conta para continuar.
@@ -102,7 +105,7 @@ function LoginPage() {
                 value={senha}
                 onChange={(e) => setSenha(e.target.value)}
                 className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 pr-12 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-                placeholder="Crie uma senha"
+                placeholder="Digite sua senha"
               />
               <button
                 type="button"
@@ -134,6 +137,8 @@ function LoginPage() {
           </Link>
         </p>
       </div>
+      </main>
+      <CreditoLaboratorio />
     </div>
   );
 }

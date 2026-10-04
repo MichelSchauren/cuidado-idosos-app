@@ -2,6 +2,10 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import CadastroResponsavel from "../components/CadastroResponsavel";
 import CadastroCuidador from "../components/CadastroCuidador";
+import {
+  CabecalhoMarca,
+  CreditoLaboratorio,
+} from "../components/IdentidadeVisual";
 
 function formatarDataParaInput(data) {
   const ano = data.getFullYear();
@@ -159,17 +163,16 @@ function CadastroPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-emerald-50 px-4 py-4 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-5xl rounded-[32px] border border-slate-200 bg-white p-5 shadow-xl sm:p-8">
+    <div className="flex min-h-screen flex-col bg-[radial-gradient(circle_at_80%_15%,_#d1fae5,_transparent_28%),linear-gradient(135deg,_#f8fafc_0%,_#ecfdf5_100%)] px-0 py-0">
+      <CabecalhoMarca />
+      <main className="flex-1 px-4 py-7 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-5xl rounded-[32px] border border-white bg-white/95 p-5 shadow-2xl shadow-emerald-950/10 sm:p-8">
         <div className="mb-5">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-600">
-            Cadastro
-          </p>
           <h1 className="mt-2 text-3xl font-semibold text-slate-900">
-            Crie sua conta
+            Vamos começar?
           </h1>
           <p className="mt-2 text-sm text-slate-500">
-            Preencha os dados abaixo para começar.
+            Crie seu acesso para organizar o cuidado.
           </p>
         </div>
 
@@ -235,6 +238,8 @@ function CadastroPage() {
           </button>
         </form>
       </div>
+      </main>
+      <CreditoLaboratorio />
     </div>
   );
 }

@@ -100,6 +100,58 @@ CREATE TABLE `medicamento_horario` (
 -- --------------------------------------------------------
 
 --
+-- Estrutura para tabela `tarefa`
+--
+
+CREATE TABLE `tarefa` (
+  `id` bigint(20) NOT NULL,
+  `paciente_id` bigint(20) NOT NULL,
+  `titulo` varchar(150) NOT NULL,
+  `descricao` text DEFAULT NULL,
+  `tipo` enum('diaria','semanal','unica') NOT NULL,
+  `dia_semana` tinyint(1) DEFAULT NULL,
+  `data_especifica` date DEFAULT NULL,
+  `origem` enum('manual','medicamento', 'consulta') NOT NULL DEFAULT 'manual',
+  `medicamento_horario_id` bigint(20) DEFAULT NULL,
+  `consulta_id` bigint(20) DEFAULT NULL,
+  `criado_por` bigint(20) NOT NULL,
+  `ativo` tinyint(1) DEFAULT 1,
+  `criado_em` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `tarefa_ocorrencia`
+--
+
+CREATE TABLE `tarefa_ocorrencia` (
+  `id` bigint(20) NOT NULL,
+  `tarefa_id` bigint(20) NOT NULL,
+  `data_referencia` date NOT NULL,
+  `concluida` tinyint(1) NOT NULL DEFAULT 0,
+  `concluida_por` bigint(20) DEFAULT NULL,
+  `concluida_em` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `diario`
+--
+
+CREATE TABLE `diario` (
+  `id` bigint(20) NOT NULL,
+  `paciente_id` bigint(20) NOT NULL,
+  `titulo` varchar(150) NOT NULL,
+  `descricao` text DEFAULT NULL,
+  `registrado_por` bigint(20) NOT NULL,
+  `registrado_em` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Estrutura para tabela `paciente`
 --
 
@@ -164,6 +216,26 @@ CREATE TABLE `usuario` (
   `foto_perfil` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `consulta`
+--
+
+CREATE TABLE `consulta` (
+  `id` bigint(20) NOT NULL,
+  `paciente_id` bigint(20) NOT NULL,
+  `especialidade` varchar(100) DEFAULT NULL,
+  `medico` varchar(150) DEFAULT NULL,
+  `local` varchar(255) DEFAULT NULL,
+  `data_hora` datetime NOT NULL,
+  `observacoes` text DEFAULT NULL,
+  `criado_por` bigint(20) NOT NULL,
+  `criado_em` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- ---------------------------------------------------------
+
 --
 -- Índices para tabelas despejadas
 --
@@ -208,6 +280,28 @@ ALTER TABLE `medicamento_horario`
   ADD UNIQUE KEY `medicamento_horario_unico` (`medicamento_id`,`horario`);
 
 --
+-- Índices de tabela `tarefa`
+--
+ALTER TABLE `tarefa`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `paciente_id` (`paciente_id`),
+  ADD KEY `criado_por` (`criado_por`),
+  ADD KEY `medicamento_horario_id` (`medicamento_horario_id`),
+  ADD KEY `consulta_id` (`consulta_id`);
+
+ALTER TABLE `tarefa_ocorrencia`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `tarefa_data_unica` (`tarefa_id`,`data_referencia`);
+
+--
+-- Índice da tabela `diario`
+--
+ALTER TABLE `diario`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `paciente_id` (`paciente_id`),
+  ADD KEY `registrado_por` (`registrado_por`);
+
+--
 -- Índices de tabela `paciente`
 --
 ALTER TABLE `paciente`
@@ -236,6 +330,15 @@ ALTER TABLE `responsavel_paciente`
 ALTER TABLE `usuario`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `login` (`login`);
+
+-- 
+-- Índices da tabela `consulta`
+--
+ALTER TABLE `consulta`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `paciente_id` (`paciente_id`),
+  ADD KEY `criado_por` (`criado_por`);
+
 
 --
 -- AUTO_INCREMENT para tabelas despejadas
@@ -272,6 +375,22 @@ ALTER TABLE `medicamento_horario`
   MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
+-- AUTO_INCREMENT de tabela `tarefa`
+--
+ALTER TABLE `tarefa`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
+
+ALTER TABLE `tarefa_ocorrencia`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
+
+
+--
+-- AUTO_INCREMENT de tabela `diario`
+--
+ALTER TABLE `diario`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT de tabela `paciente`
 --
 ALTER TABLE `paciente`
@@ -294,6 +413,13 @@ ALTER TABLE `responsavel_paciente`
 --
 ALTER TABLE `usuario`
   MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT de tabela `consulta`
+--
+ALTER TABLE `consulta`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
+
 
 --
 -- Restrições para tabelas despejadas
@@ -333,10 +459,37 @@ ALTER TABLE `medicamento_horario`
   ADD CONSTRAINT `medicamento_horario_ibfk_1` FOREIGN KEY (`medicamento_id`) REFERENCES `medicamento` (`id`) ON DELETE CASCADE;
 
 --
+-- Restrições para tabelas `tarefa`
+--
+ALTER TABLE `tarefa`
+  ADD CONSTRAINT `tarefa_ibfk_1` FOREIGN KEY (`paciente_id`) REFERENCES `paciente` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `tarefa_ibfk_2` FOREIGN KEY (`criado_por`) REFERENCES `usuario` (`id`),
+  ADD CONSTRAINT `tarefa_ibfk_3` FOREIGN KEY (`medicamento_horario_id`) REFERENCES `medicamento_horario` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `tarefa_ibfk_4` FOREIGN KEY (`consulta_id`) REFERENCES `consulta` (`id`) ON DELETE CASCADE;
+
+ALTER TABLE `tarefa_ocorrencia`
+  ADD CONSTRAINT `tarefa_ocorrencia_ibfk_1` FOREIGN KEY (`tarefa_id`) REFERENCES `tarefa` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `tarefa_ocorrencia_ibfk_2` FOREIGN KEY (`concluida_por`) REFERENCES `usuario` (`id`);
+
+--
+-- Restrições para tabelas `diario`
+--
+ALTER TABLE `diario`
+  ADD CONSTRAINT `diario_ibfk_1` FOREIGN KEY (`paciente_id`) REFERENCES `paciente` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `diario_ibfk_2` FOREIGN KEY (`registrado_por`) REFERENCES `usuario` (`id`);
+
+--
 -- Restrições para tabelas `responsavel`
 --
 ALTER TABLE `responsavel`
   ADD CONSTRAINT `responsavel_ibfk_1` FOREIGN KEY (`usuario_id`) REFERENCES `usuario` (`id`) ON DELETE CASCADE;
+
+--
+-- Restrições para tabelas `usuario`
+--
+ALTER TABLE `consulta`
+  ADD CONSTRAINT `consulta_ibfk_1` FOREIGN KEY (`paciente_id`) REFERENCES `paciente` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `consulta_ibfk_2` FOREIGN KEY (`criado_por`) REFERENCES `usuario` (`id`);
 
 --
 -- Restrições para tabelas `responsavel_paciente`
