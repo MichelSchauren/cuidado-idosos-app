@@ -8,7 +8,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import BotaoVisual from "../components/botaoVisual";
+import BotaoVisual from "../components/BotaoVisual";
 import startSection from "../services/startSection";
 import CampoPerfil from "../components/campoPerfil";
 import {

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import BotaoVisual from "./botaoVisual";
+import BotaoVisual from "./BotaoVisual";
 
 function CadastroCuidador({
   setNome,
