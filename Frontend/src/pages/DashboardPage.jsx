@@ -70,7 +70,7 @@ function DashboardPage() {
         <div className="flex items-center gap-3">
           <Link
             to="/perfil"
-            className="group flex items-center gap-2 rounded-xl px-2 py-1 transition hover:bg-emerald-50"
+            className="group flex items-center gap-2 rounded-xl px-2 py-1 transition hover:bg-emerald-800"
             aria-label="Seus dados"
           >
             {perfil?.foto_perfil ? (
