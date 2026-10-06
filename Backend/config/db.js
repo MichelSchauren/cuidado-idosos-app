@@ -1,5 +1,5 @@
 // Conexão com o BANCO
-const mysql = require("mysql");
+const mysql = require("mysql2");
 
 const configuracao = {
   host: process.env.HOST,
