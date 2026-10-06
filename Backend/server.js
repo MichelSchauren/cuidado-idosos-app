@@ -11,6 +11,11 @@ app.use(express.json()); // Permite que o backend receba dados JSON no corpo das
 app.use("/imagens", express.static(path.join(__dirname, "imagens")));
 app.use("/api", routes);
 
+// Teste de rota
+app.get("/", (req, res) => {
+  res.send("Servidor rodando!");
+});
+
 // Rodar servidor
 const PORT = process.env.PORT || 8081;
 app.listen(PORT, () => {

@@ -43,7 +43,7 @@ export function CreditoLaboratorio() {
   return (
     <footer className="mx-auto flex w-full max-w-6xl items-center justify-center gap-3 px-4 py-5 text-xs text-slate-500 sm:px-6 lg:px-8">
       <span>
-        <strong>© M-CHAT DIGITAL 2026 |</strong>
+        <strong>© Cuidaê 2026 |</strong>
       </span>
       <img
         src={logoLaboratorio}
