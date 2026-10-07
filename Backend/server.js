@@ -10,7 +10,7 @@ const app = express();
 // CORS funcionando em localhost e em cuidado-idosos-app.vercel.app
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://cuidado-idosos-app.vercel.app"],
+    origin: ["http://localhost:5173", "https://cuidado-idosos-app.vercel.app"],
   }),
 );
 
