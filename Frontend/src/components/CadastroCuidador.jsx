@@ -14,6 +14,7 @@ function CadastroCuidador({
   setEmail,
   setSenha,
   setCSenha,
+  dataMinimaNascimento,
   dataMaximaNascimento,
 }) {
   const [mostrarSenha, setMostrarSenha] = useState(false);
@@ -72,6 +73,7 @@ function CadastroCuidador({
           name="data-de-nascimento"
           id="data-de-nascimento"
           required
+          min={dataMinimaNascimento}
           max={dataMaximaNascimento}
           onChange={(e) => setNascimento(e.target.value)}
           className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"

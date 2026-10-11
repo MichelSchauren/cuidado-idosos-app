@@ -5,26 +5,34 @@ import logoIFRS from "../assets/ifrs-logo.svg";
 
 export function MarcaCuidae({ to = "/" }) {
   return (
-    <Link
-      to={to}
-      aria-label="Cuidaê — página inicial"
-      className="inline-flex w-fit items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-200"
-    >
-      <img
-        src={logoCuidae}
-        alt=""
-        className="h-12 w-12 object-contain sm:h-14 sm:w-14"
-      />
-      <span className="text-2xl font-bold tracking-tight text-teal-600 sm:text-3xl">
-        Cuidaê
-      </span>
-
-      <img
-        src={logoIFRS}
-        alt=""
-        className="h-12 w-12 object-contain sm:h-14 sm:w-14"
-      />
-    </Link>
+    <div className="inline-flex w-fit items-center gap-3">
+      <Link
+        to={to}
+        aria-label="Cuidaê — página inicial"
+        className="inline-flex w-fit items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-200"
+      >
+        <img
+          src={logoCuidae}
+          alt=""
+          className="h-12 w-12 object-contain sm:h-14 sm:w-14"
+        />
+        <span className="text-2xl font-bold tracking-tight text-teal-600 sm:text-3xl">
+          Cuidaê
+        </span>
+      </Link>
+      <a
+        href="https://www.ifrs.edu.br/"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Acessar o site do IFRS (abre em nova aba)"
+      >
+        <img
+          src={logoIFRS}
+          alt=""
+          className="h-12 w-12 object-contain sm:h-14 sm:w-14"
+        />
+      </a>
+    </div>
   );
 }
 

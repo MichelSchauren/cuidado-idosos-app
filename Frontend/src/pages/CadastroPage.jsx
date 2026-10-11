@@ -21,7 +21,7 @@ function nomeCompletoValido(nome) {
   );
 }
 
-function maiorDeIdade(dataNascimento) {
+function VerificarIdade(dataNascimento) {
   const partesData = dataNascimento.split("-").map(Number);
   if (partesData.length !== 3 || partesData.some(Number.isNaN)) return false;
 
@@ -33,10 +33,15 @@ function maiorDeIdade(dataNascimento) {
     nascimento.getDate() === dia;
   if (!dataExiste) return false;
 
-  const limite = new Date();
-  limite.setHours(0, 0, 0, 0);
-  limite.setFullYear(limite.getFullYear() - 18);
-  return nascimento <= limite;
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
+  const dataMinima = new Date(hoje);
+  dataMinima.setFullYear(dataMinima.getFullYear() - 120);
+  const dataMaxima = new Date(hoje);
+  dataMaxima.setFullYear(dataMaxima.getFullYear() - 18);
+
+  return nascimento >= dataMinima && nascimento <= dataMaxima;
 }
 
 function CadastroPage() {
@@ -57,6 +62,10 @@ function CadastroPage() {
   const dataLimiteNascimento = new Date();
   dataLimiteNascimento.setFullYear(dataLimiteNascimento.getFullYear() - 18);
   const dataMaximaNascimento = formatarDataParaInput(dataLimiteNascimento);
+  const dataMinimaNascimento = new Date();
+  dataMinimaNascimento.setFullYear(dataMinimaNascimento.getFullYear() - 120);
+  const dataMinimaNascimentoFormatada =
+    formatarDataParaInput(dataMinimaNascimento);
 
   async function validarCadastro(event) {
     event.preventDefault();
@@ -68,14 +77,14 @@ function CadastroPage() {
       return;
     }
 
-    // Validação da idade mínima de 18 anos
+    // Validação da idade entre 18 e 120 anos
     if (!nomeCompletoValido(nome)) {
       alert("Informe seu nome completo, com nome e sobrenome.");
       return;
     }
 
-    if (!maiorDeIdade(nascimento)) {
-      alert("Você deve ter pelo menos 18 anos para se cadastrar.");
+    if (!VerificarIdade(nascimento)) {
+      alert("A idade para se cadastrar deve estar entre 18 e 120 anos.");
       return;
     }
 
@@ -210,6 +219,7 @@ function CadastroPage() {
               setEmail={setEmail}
               setSenha={setSenha}
               setCSenha={setCSenha}
+              dataMinimaNascimento={dataMinimaNascimentoFormatada}
               dataMaximaNascimento={dataMaximaNascimento}
             />
           ) : (
@@ -226,6 +236,7 @@ function CadastroPage() {
               setEmail={setEmail}
               setSenha={setSenha}
               setCSenha={setCSenha}
+              dataMinimaNascimento={dataMinimaNascimentoFormatada}
               dataMaximaNascimento={dataMaximaNascimento}
             />
           )}

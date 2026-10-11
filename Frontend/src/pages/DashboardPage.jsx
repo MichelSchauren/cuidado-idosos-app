@@ -66,7 +66,7 @@ function DashboardPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50">
-      <CabecalhoMarca to="/dashboard">
+      <CabecalhoMarca to="/">
         <div className="flex items-center gap-3">
           <Link
             to="/perfil"

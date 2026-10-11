@@ -57,7 +57,7 @@ function nomeCompletoValido(nome) {
   );
 }
 
-function maiorDeIdade(dataNascimento) {
+function VerificarIdade(dataNascimento) {
   if (typeof dataNascimento !== "string") return false;
 
   const partesData = dataNascimento.split("-").map(Number);
@@ -71,10 +71,15 @@ function maiorDeIdade(dataNascimento) {
     nascimento.getDate() === dia;
   if (!dataExiste) return false;
 
-  const limite = new Date();
-  limite.setHours(0, 0, 0, 0);
-  limite.setFullYear(limite.getFullYear() - 18);
-  return nascimento <= limite;
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
+  const dataMinima = new Date(hoje);
+  dataMinima.setFullYear(dataMinima.getFullYear() - 120);
+  const dataMaxima = new Date(hoje);
+  dataMaxima.setFullYear(dataMaxima.getFullYear() - 18);
+
+  return nascimento >= dataMinima && nascimento <= dataMaxima;
 }
 
 function executarConsultaNaConexao(conexao, sql, parametros) {
@@ -249,11 +254,11 @@ async function cadastrar(req, res) {
     return res.status(400).json({ error: "Informe nome e sobrenome." });
   }
 
-  if (!maiorDeIdade(data_nascimento)) {
+  if (!VerificarIdade(data_nascimento)) {
     removerFoto(req.file);
     return res
       .status(400)
-      .json({ error: "Cadastro permitido apenas para maiores de 18 anos." });
+      .json({ error: "Cadastro permitido para pessoas entre 18 e 120 anos." });
   }
 
   let conexao;
