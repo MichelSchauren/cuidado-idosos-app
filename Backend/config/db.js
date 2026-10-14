@@ -8,10 +8,21 @@ const configuracao = {
   database: process.env.DATABASE,
 };
 
-const db = mysql.createConnection(configuracao);
+const db = mysql.createPool({
+  ...configuracao,
+  connectionLimit: 10,
+  waitForConnections: true,
+  queueLimit: 0,
+  maxIdle: 5,
+  idleTimeout: 4 * 60 * 1000,
+});
 
-// Transações críticas usam uma conexão exclusiva para não misturar comandos
-// de duas requisições simultâneas na conexão principal.
-db.criarConexaoTransacional = () => mysql.createConnection(configuracao);
+db.criarConexaoTransacional = () =>
+  new Promise((resolve, reject) => {
+    db.getConnection((err, conexao) => {
+      if (err) return reject(err);
+      return resolve(conexao);
+    });
+  });
 
 module.exports = db;

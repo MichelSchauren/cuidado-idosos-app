@@ -38,7 +38,7 @@ test("agendar consulta cria uma tarefa única vinculada na mesma transação", a
   const conexaoOriginal = db.criarConexaoTransacional;
   const operacoes = [];
   db.query = (_sql, _parametros, callback) => callback(null, [{ acesso: 1 }]);
-  db.criarConexaoTransacional = () => ({
+  db.criarConexaoTransacional = async () => ({
     beginTransaction(callback) {
       callback(null);
     },
@@ -54,7 +54,7 @@ test("agendar consulta cria uma tarefa única vinculada na mesma transação", a
       operacoes.push({ sql: "ROLLBACK" });
       callback(null);
     },
-    end() {},
+    release() {},
   });
 
   const res = resposta();
@@ -97,7 +97,7 @@ test("falha ao criar tarefa desfaz o cadastro da consulta", async () => {
   const conexaoOriginal = db.criarConexaoTransacional;
   const operacoes = [];
   db.query = (_sql, _parametros, callback) => callback(null, [{ acesso: 1 }]);
-  db.criarConexaoTransacional = () => ({
+  db.criarConexaoTransacional = async () => ({
     beginTransaction(callback) {
       callback(null);
     },
@@ -116,7 +116,7 @@ test("falha ao criar tarefa desfaz o cadastro da consulta", async () => {
       operacoes.push("ROLLBACK");
       callback(null);
     },
-    end() {},
+    release() {},
   });
 
   const res = resposta();
@@ -132,3 +132,10 @@ test("falha ao criar tarefa desfaz o cadastro da consulta", async () => {
     db.criarConexaoTransacional = conexaoOriginal;
   }
 });
+
+test.after(
+  () =>
+    new Promise((resolve, reject) => {
+      db.end((err) => (err ? reject(err) : resolve()));
+    }),
+);

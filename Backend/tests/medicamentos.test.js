@@ -67,7 +67,7 @@ test("responsável pode registrar uma dose e concluir sua tarefa", async () => {
   const hoje = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}-${String(data.getDate()).padStart(2, "0")}`;
 
   db.query = (_sql, _parametros, callback) => callback(null, [{ acesso: 1 }]);
-  db.criarConexaoTransacional = () => ({
+  db.criarConexaoTransacional = async () => ({
     beginTransaction(callback) {
       callback(null);
     },
@@ -88,7 +88,7 @@ test("responsável pode registrar uma dose e concluir sua tarefa", async () => {
     rollback(callback) {
       callback(null);
     },
-    end() {},
+    release() {},
   });
 
   const res = resposta();
@@ -263,3 +263,10 @@ test("diário exige um título", async () => {
   );
   assert.equal(res.statusCode, 400);
 });
+
+test.after(
+  () =>
+    new Promise((resolve, reject) => {
+      db.end((err) => (err ? reject(err) : resolve()));
+    }),
+);

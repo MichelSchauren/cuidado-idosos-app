@@ -92,16 +92,17 @@ function executarConsultaNaConexao(conexao, sql, parametros) {
 }
 
 function abrirTransacaoExclusiva() {
-  const conexao = db.criarConexaoTransacional();
-  return new Promise((resolve, reject) => {
-    conexao.beginTransaction((err) => {
-      if (err) {
-        conexao.end();
-        return reject(err);
-      }
-      return resolve(conexao);
-    });
-  });
+  return db.criarConexaoTransacional().then((conexao) =>
+    new Promise((resolve, reject) => {
+      conexao.beginTransaction((err) => {
+        if (err) {
+          conexao.release();
+          return reject(err);
+        }
+        return resolve(conexao);
+      });
+    }),
+  );
 }
 
 const relacoesPaciente = {
@@ -323,7 +324,7 @@ async function cadastrar(req, res) {
     console.error("Erro ao cadastrar usuário:", error);
     return res.status(500).json({ error: error.message });
   } finally {
-    if (conexao) conexao.end();
+    if (conexao) conexao.release();
   }
 }
 
@@ -631,7 +632,7 @@ async function atualizarPaciente(req, res) {
       error: error.status ? error.message : "Erro ao atualizar paciente.",
     });
   } finally {
-    if (conexao) conexao.end();
+    if (conexao) conexao.release();
   }
 }
 
@@ -706,7 +707,7 @@ async function excluirPaciente(req, res) {
       error: error.status ? error.message : "Erro ao excluir paciente.",
     });
   } finally {
-    if (conexao) conexao.end();
+    if (conexao) conexao.release();
   }
 }
 
@@ -842,7 +843,7 @@ async function cadastrarPaciente(req, res) {
       error: error.status ? error.message : "Erro ao cadastrar paciente.",
     });
   } finally {
-    if (conexao) conexao.end();
+    if (conexao) conexao.release();
   }
 }
 
@@ -978,7 +979,7 @@ async function cadastrarMedicamento(req, res) {
       return res.status(403).json({ error: "Usuário sem acesso ao paciente." });
     }
 
-    conexao = db.criarConexaoTransacional();
+    conexao = await db.criarConexaoTransacional();
     await new Promise((resolve, reject) =>
       conexao.beginTransaction((error) => {
         if (error) return reject(error);
@@ -1031,7 +1032,7 @@ async function cadastrarMedicamento(req, res) {
     console.error("Erro ao cadastrar medicamento:", error);
     return res.status(500).json({ error: "Erro ao cadastrar medicamento." });
   } finally {
-    if (conexao) conexao.end();
+    if (conexao) conexao.release();
   }
 }
 
@@ -1132,7 +1133,7 @@ async function registrarAdministracao(req, res) {
       return res.status(403).json({ error: "Usuário sem acesso ao paciente." });
     }
 
-    conexao = db.criarConexaoTransacional();
+    conexao = await db.criarConexaoTransacional();
     await new Promise((resolve, reject) =>
       conexao.beginTransaction((error) => {
         if (error) return reject(error);
@@ -1215,7 +1216,7 @@ async function registrarAdministracao(req, res) {
     console.error("Erro ao registrar dose:", error);
     return res.status(500).json({ error: "Erro ao registrar dose." });
   } finally {
-    if (conexao) conexao.end();
+    if (conexao) conexao.release();
   }
 }
 
@@ -1348,7 +1349,7 @@ async function cadastrarConsulta(req, res) {
       return res.status(403).json({ error: "Usuário sem acesso ao paciente." });
     }
 
-    conexao = db.criarConexaoTransacional();
+    conexao = await db.criarConexaoTransacional();
     await new Promise((resolve, reject) =>
       conexao.beginTransaction((error) => {
         if (error) return reject(error);
@@ -1414,7 +1415,7 @@ async function cadastrarConsulta(req, res) {
     console.error("Erro ao agendar consulta:", error);
     return res.status(500).json({ error: "Erro ao agendar consulta." });
   } finally {
-    if (conexao) conexao.end();
+    if (conexao) conexao.release();
   }
 }
 

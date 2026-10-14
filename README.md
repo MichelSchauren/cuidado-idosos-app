@@ -116,6 +116,12 @@ JWT_SECRET=(chave aleatória)
 
 > ⚠️ Substitua `USER`, `PASSWORD` e `HOST` conforme a configuração do seu MySQL local. Gere uma `JWT_SECRET` aleatória e segura (ex.: `openssl rand -base64 32`).
 
+O backend usa um pool MySQL com limite de 10 conexões por instância, mantém até
+5 conexões ociosas e encerra as conexões ociosas restantes após 4 minutos.
+Transações reservam uma conexão do pool até serem concluídas e a devolvem ao
+pool. Se o backend tiver várias instâncias, considere o limite total de
+conexões permitido pelo seu banco.
+
 **`Frontend/.env`**
 
 ```env
