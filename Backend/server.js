@@ -18,6 +18,14 @@ app.use(express.json()); // Permite que o backend receba dados JSON no corpo das
 app.use("/imagens", express.static(path.join(__dirname, "imagens")));
 app.use("/api", routes);
 
+process.on("uncaughtException", (error) => {
+  console.error("Erro crítico não capturado:", error);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Promessa rejeitada não tratada:", reason);
+});
+
 // Teste de rota
 app.get("/", (req, res) => {
   res.send("Servidor rodando!");
