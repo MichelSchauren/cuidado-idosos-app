@@ -193,6 +193,20 @@ npm run dev
 
 O frontend estará disponível normalmente em `http://localhost:5173` (padrão do Vite), consumindo a API em `http://localhost:8081/api/`.
 
+### Vínculos de responsáveis e cuidadores
+
+A aba **Cuidadores** consulta e altera os vínculos do paciente pela API:
+
+- `GET /api/pacientes/:id/vinculos` lista responsáveis e cuidadores vinculados;
+- `GET /api/pacientes/:id/perfis-disponiveis` pesquisa perfis por nome (mínimo de 2 caracteres), idade, gênero e tipo;
+- `POST /api/pacientes/:id/vinculos` recebe `{ "tipo": "cuidador", "perfilId": 1 }` (ou `responsavel`);
+- `DELETE /api/pacientes/:id/vinculos/:tipo/:perfilId` remove um vínculo.
+
+As rotas exigem autenticação. Para gerenciar vínculos, o usuário precisa ser um
+responsável vinculado com permissão `pode_editar_paciente`; para vincular um
+cuidador, também precisa de `pode_convidar_cuidador`. O sistema impede remover
+o próprio vínculo ou o último responsável do paciente.
+
 ## 🛠️ Status do projeto
 
 🚧 Em desenvolvimento — fase de levantamento de requisitos, pesquisa exploratória e prototipação.

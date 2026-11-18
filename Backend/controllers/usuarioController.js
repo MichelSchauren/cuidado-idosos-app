@@ -123,7 +123,9 @@ function tipoUsuario(req) {
 }
 
 async function usuarioTemAcessoAoPaciente(usuarioId, tipo, pacienteId) {
-  const relacao = relacoesPaciente[tipo];
+  const relacao = Object.prototype.hasOwnProperty.call(relacoesPaciente, tipo)
+    ? relacoesPaciente[tipo]
+    : null;
   if (!usuarioId || !relacao || !/^\d+$/.test(String(pacienteId))) return false;
 
   const registros = await executarConsulta(
@@ -136,6 +138,31 @@ async function usuarioTemAcessoAoPaciente(usuarioId, tipo, pacienteId) {
     [usuarioId, pacienteId],
   );
   return registros.length > 0;
+}
+
+async function obterPermissoesVinculos(usuarioId, pacienteId) {
+  if (!usuarioId || !/^\d+$/.test(String(pacienteId))) {
+    return { podeGerenciar: false, podeVincularCuidador: false };
+  }
+
+  const registros = await executarConsulta(
+    `SELECT rp.pode_editar_paciente, rp.pode_convidar_cuidador
+       FROM responsavel_paciente rp
+       JOIN responsavel r ON r.id = rp.responsavel_id
+      WHERE r.usuario_id = ? AND rp.paciente_id = ?
+      LIMIT 1`,
+    [usuarioId, pacienteId],
+  );
+
+  const podeGerenciar =
+    registros.length > 0 &&
+    Number(registros[0].pode_editar_paciente) === 1;
+  return {
+    podeGerenciar,
+    podeVincularCuidador:
+      podeGerenciar &&
+      Number(registros[0]?.pode_convidar_cuidador) === 1,
+  };
 }
 
 function dataValida(data) {
@@ -479,6 +506,444 @@ function getPaciente(req, res) {
       return buscarPaciente(usuarios[0].tipo_usuario);
     },
   );
+}
+
+async function getVinculosPaciente(req, res) {
+  const usuarioId = req.user?.id;
+  const pacienteId = req.params.id;
+  const tipo = tipoUsuario(req);
+
+  if (!usuarioId || !/^\d+$/.test(pacienteId)) {
+    return res
+      .status(400)
+      .json({ error: "Identificador de paciente inválido." });
+  }
+
+  try {
+    if (!(await usuarioTemAcessoAoPaciente(usuarioId, tipo, pacienteId))) {
+      return res.status(403).json({ error: "Usuário sem acesso ao paciente." });
+    }
+
+    async function consultarVinculados(tipoPerfil) {
+      const relacao = relacoesPaciente[tipoPerfil];
+      const perfis = await executarConsulta(
+        `SELECT perfil.id, perfil.usuario_id, perfil.nome,
+                TIMESTAMPDIFF(YEAR, perfil.data_nascimento, CURDATE()) AS idade,
+                CASE perfil.sexo
+                  WHEN 'M' THEN 'Masculino'
+                  WHEN 'F' THEN 'Feminino'
+                  WHEN 'Outro' THEN 'Outro'
+                  ELSE NULL
+                END AS genero
+           FROM ${relacao.tabelaRelacao} x
+           JOIN ${relacao.tabelaPerfil} perfil
+             ON perfil.id = x.${relacao.colunaPerfil}
+          WHERE x.paciente_id = ?
+          ORDER BY perfil.nome`,
+        [pacienteId],
+      );
+      return perfis.map((perfil) => {
+        const { usuario_id: usuarioPerfilId, ...dadosPerfil } = perfil;
+        return {
+          ...dadosPerfil,
+          idade: perfil.idade === null ? null : Number(perfil.idade),
+          tipo: tipoPerfil,
+          souEu: String(usuarioPerfilId) === String(usuarioId),
+        };
+      });
+    }
+
+    const [responsaveis, cuidadores, permissoes] = await Promise.all([
+      consultarVinculados("responsavel"),
+      consultarVinculados("cuidador"),
+      obterPermissoesVinculos(usuarioId, pacienteId),
+    ]);
+
+    return res.json({
+      responsaveis,
+      cuidadores,
+      ...permissoes,
+    });
+  } catch (error) {
+    console.error("Erro ao buscar vínculos do paciente:", error);
+    return res.status(500).json({ error: "Erro ao buscar vínculos." });
+  }
+}
+
+async function getPerfisDisponiveis(req, res) {
+  const usuarioId = req.user?.id;
+  const pacienteId = req.params.id;
+  const tipoUsuarioAtual = tipoUsuario(req);
+  const nome =
+    typeof req.query.nome === "string" ? req.query.nome.trim() : "";
+  const tipo = req.query.tipo === undefined ? "todos" : req.query.tipo;
+  const genero = req.query.genero === undefined ? "todos" : req.query.genero;
+  const idadeMinimaRaw = req.query.idadeMinima;
+  const idadeMaximaRaw = req.query.idadeMaxima;
+  const idadeMinima =
+    idadeMinimaRaw === undefined || idadeMinimaRaw === ""
+      ? null
+      : typeof idadeMinimaRaw === "string" && /^\d{1,3}$/.test(idadeMinimaRaw)
+        ? Number(idadeMinimaRaw)
+        : Number.NaN;
+  const idadeMaxima =
+    idadeMaximaRaw === undefined || idadeMaximaRaw === ""
+      ? null
+      : typeof idadeMaximaRaw === "string" && /^\d{1,3}$/.test(idadeMaximaRaw)
+        ? Number(idadeMaximaRaw)
+        : Number.NaN;
+  const generoParaBanco =
+    genero === "Feminino" || genero === "F"
+      ? "F"
+      : genero === "Masculino" || genero === "M"
+        ? "M"
+        : genero === "Outro"
+          ? "Outro"
+          : null;
+
+  if (!usuarioId || !/^\d+$/.test(pacienteId)) {
+    return res
+      .status(400)
+      .json({ error: "Identificador de paciente inválido." });
+  }
+
+  if (nome.length < 2 || nome.length > 150) {
+    return res
+      .status(400)
+      .json({ error: "Informe ao menos 2 caracteres para pesquisar." });
+  }
+
+  if (
+    !["todos", "responsavel", "cuidador"].includes(tipo) ||
+    (typeof tipo !== "string" ||
+      typeof genero !== "string" ||
+      (genero !== "todos" && !generoParaBanco)) ||
+    (idadeMinima !== null &&
+      (!Number.isInteger(idadeMinima) || idadeMinima < 0 || idadeMinima > 120)) ||
+    (idadeMaxima !== null &&
+      (!Number.isInteger(idadeMaxima) || idadeMaxima < 0 || idadeMaxima > 120)) ||
+    (idadeMinima !== null &&
+      idadeMaxima !== null &&
+      idadeMinima > idadeMaxima)
+  ) {
+    return res.status(400).json({ error: "Filtros de pesquisa inválidos." });
+  }
+
+  try {
+    if (!(await usuarioTemAcessoAoPaciente(usuarioId, tipoUsuarioAtual, pacienteId))) {
+      return res
+        .status(403)
+        .json({ error: "Usuário sem acesso ao paciente." });
+    }
+
+    const permissoes = await obterPermissoesVinculos(usuarioId, pacienteId);
+    if (!permissoes.podeGerenciar) {
+      return res
+        .status(403)
+        .json({ error: "Sem permissão para pesquisar perfis." });
+    }
+
+    if (tipo === "cuidador" && !permissoes.podeVincularCuidador) {
+      return res
+        .status(403)
+        .json({ error: "Sem permissão para vincular cuidadores." });
+    }
+
+    const tipos =
+      tipo === "todos"
+        ? permissoes.podeVincularCuidador
+          ? ["responsavel", "cuidador"]
+          : ["responsavel"]
+        : [tipo];
+    const resultados = await Promise.all(
+      tipos.map(async (tipoPerfil) => {
+        const relacao = relacoesPaciente[tipoPerfil];
+        const condicoes = [
+          "u.ativo = 1",
+          "perfil.nome LIKE ?",
+          `NOT EXISTS (
+              SELECT 1
+                FROM ${relacao.tabelaRelacao} vinculacao
+               WHERE vinculacao.${relacao.colunaPerfil} = perfil.id
+                 AND vinculacao.paciente_id = ?
+            )`,
+        ];
+        const parametros = [
+          `%${nome.replace(/[\\%_]/g, "\\$&")}%`,
+          pacienteId,
+        ];
+
+        if (idadeMinima !== null) {
+          condicoes.push(
+            "perfil.data_nascimento IS NOT NULL AND TIMESTAMPDIFF(YEAR, perfil.data_nascimento, CURDATE()) >= ?",
+          );
+          parametros.push(idadeMinima);
+        }
+        if (idadeMaxima !== null) {
+          condicoes.push(
+            "perfil.data_nascimento IS NOT NULL AND TIMESTAMPDIFF(YEAR, perfil.data_nascimento, CURDATE()) <= ?",
+          );
+          parametros.push(idadeMaxima);
+        }
+        if (generoParaBanco) {
+          condicoes.push("perfil.sexo = ?");
+          parametros.push(generoParaBanco);
+        }
+
+        const perfis = await executarConsulta(
+          `SELECT perfil.id, perfil.nome,
+                    TIMESTAMPDIFF(YEAR, perfil.data_nascimento, CURDATE()) AS idade,
+                    CASE perfil.sexo
+                      WHEN 'M' THEN 'Masculino'
+                      WHEN 'F' THEN 'Feminino'
+                      WHEN 'Outro' THEN 'Outro'
+                      ELSE NULL
+                    END AS genero
+               FROM ${relacao.tabelaPerfil} perfil
+               JOIN usuario u ON u.id = perfil.usuario_id
+              WHERE ${condicoes.join(" AND ")}
+              ORDER BY perfil.nome
+              LIMIT 50`,
+          parametros,
+        );
+        return perfis.map((perfil) => ({
+          ...perfil,
+          idade: perfil.idade === null ? null : Number(perfil.idade),
+          tipo: tipoPerfil,
+        }));
+      }),
+    );
+
+    return res.json(
+      resultados.flat().sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")),
+    );
+  } catch (error) {
+    console.error("Erro ao pesquisar perfis para vínculo:", error);
+    return res
+      .status(500)
+      .json({ error: "Erro ao pesquisar perfis disponíveis." });
+  }
+}
+
+async function vincularPerfilPaciente(req, res) {
+  const usuarioId = req.user?.id;
+  const pacienteId = req.params.id;
+  const tipo = req.body?.tipo;
+  const perfilId = req.body?.perfilId;
+  const relacao = Object.prototype.hasOwnProperty.call(relacoesPaciente, tipo)
+    ? relacoesPaciente[tipo]
+    : null;
+
+  if (
+    !usuarioId ||
+    !/^[1-9]\d*$/.test(String(pacienteId)) ||
+    !relacao ||
+    !/^[1-9]\d*$/.test(String(perfilId))
+  ) {
+    return res.status(400).json({ error: "Dados de vínculo inválidos." });
+  }
+
+  let conexao;
+  let transacaoIniciada = false;
+
+  try {
+    conexao = await abrirTransacaoExclusiva();
+    transacaoIniciada = true;
+
+    const permissoes = await executarConsultaNaConexao(
+      conexao,
+      `SELECT rp.pode_editar_paciente, rp.pode_convidar_cuidador
+         FROM responsavel_paciente rp
+         JOIN responsavel r ON r.id = rp.responsavel_id
+        WHERE r.usuario_id = ? AND rp.paciente_id = ?
+        LIMIT 1 FOR UPDATE`,
+      [usuarioId, pacienteId],
+    );
+    if (
+      !permissoes.length ||
+      Number(permissoes[0].pode_editar_paciente) !== 1 ||
+      (tipo === "cuidador" &&
+        Number(permissoes[0].pode_convidar_cuidador) !== 1)
+    ) {
+      const erro = new Error("Sem permissão para vincular perfis.");
+      erro.status = 403;
+      throw erro;
+    }
+
+    const perfis = await executarConsultaNaConexao(
+      conexao,
+      `SELECT perfil.id
+         FROM ${relacao.tabelaPerfil} perfil
+         JOIN usuario u ON u.id = perfil.usuario_id
+        WHERE perfil.id = ? AND u.ativo = 1
+        LIMIT 1`,
+      [perfilId],
+    );
+    if (!perfis.length) {
+      const erro = new Error("Perfil não encontrado ou inativo.");
+      erro.status = 404;
+      throw erro;
+    }
+
+    const vinculos = await executarConsultaNaConexao(
+      conexao,
+      `SELECT id
+         FROM ${relacao.tabelaRelacao}
+        WHERE ${relacao.colunaPerfil} = ? AND paciente_id = ?
+        LIMIT 1`,
+      [perfilId, pacienteId],
+    );
+    if (vinculos.length) {
+      const erro = new Error("Este perfil já está vinculado ao paciente.");
+      erro.status = 409;
+      throw erro;
+    }
+
+    const resultado = await executarConsultaNaConexao(
+      conexao,
+      `INSERT INTO ${relacao.tabelaRelacao}
+        (${relacao.colunaPerfil}, paciente_id)
+       VALUES (?, ?)`,
+      [perfilId, pacienteId],
+    );
+
+    await new Promise((resolve, reject) => {
+      conexao.commit((err) => (err ? reject(err) : resolve()));
+    });
+    transacaoIniciada = false;
+
+    return res.status(201).json({
+      id: resultado.insertId,
+      perfilId,
+      tipo,
+      message: "Perfil vinculado ao paciente.",
+    });
+  } catch (error) {
+    if (transacaoIniciada) {
+      await new Promise((resolve) => conexao.rollback(() => resolve()));
+    }
+    if (error.code === "ER_DUP_ENTRY") {
+      return res
+        .status(409)
+        .json({ error: "Este perfil já está vinculado ao paciente." });
+    }
+    if (error.status) {
+      return res.status(error.status).json({ error: error.message });
+    }
+    console.error("Erro ao vincular perfil ao paciente:", error);
+    return res.status(500).json({ error: "Erro ao vincular perfil." });
+  } finally {
+    if (conexao) conexao.release();
+  }
+}
+
+async function desvincularPerfilPaciente(req, res) {
+  const usuarioId = req.user?.id;
+  const pacienteId = req.params.id;
+  const perfilId = req.params.perfilId;
+  const tipo = req.params.tipo;
+  const relacao = Object.prototype.hasOwnProperty.call(relacoesPaciente, tipo)
+    ? relacoesPaciente[tipo]
+    : null;
+
+  if (
+    !usuarioId ||
+    !/^[1-9]\d*$/.test(String(pacienteId)) ||
+    !/^[1-9]\d*$/.test(String(perfilId)) ||
+    !relacao
+  ) {
+    return res.status(400).json({ error: "Dados de vínculo inválidos." });
+  }
+
+  let conexao;
+  let transacaoIniciada = false;
+
+  try {
+    conexao = await abrirTransacaoExclusiva();
+    transacaoIniciada = true;
+
+    const permissoes = await executarConsultaNaConexao(
+      conexao,
+      `SELECT rp.pode_editar_paciente
+         FROM responsavel_paciente rp
+         JOIN responsavel r ON r.id = rp.responsavel_id
+        WHERE r.usuario_id = ? AND rp.paciente_id = ?
+        LIMIT 1 FOR UPDATE`,
+      [usuarioId, pacienteId],
+    );
+    if (
+      !permissoes.length ||
+      Number(permissoes[0].pode_editar_paciente) !== 1
+    ) {
+      const erro = new Error("Sem permissão para desvincular perfis.");
+      erro.status = 403;
+      throw erro;
+    }
+
+    const vinculos = await executarConsultaNaConexao(
+      conexao,
+      `SELECT perfil.usuario_id
+         FROM ${relacao.tabelaRelacao} x
+         JOIN ${relacao.tabelaPerfil} perfil
+           ON perfil.id = x.${relacao.colunaPerfil}
+        WHERE x.paciente_id = ? AND perfil.id = ?
+        LIMIT 1 FOR UPDATE`,
+      [pacienteId, perfilId],
+    );
+    if (!vinculos.length) {
+      const erro = new Error("Vínculo não encontrado.");
+      erro.status = 404;
+      throw erro;
+    }
+    if (String(vinculos[0].usuario_id) === String(usuarioId)) {
+      const erro = new Error("Você não pode remover seu próprio vínculo.");
+      erro.status = 409;
+      throw erro;
+    }
+
+    if (tipo === "responsavel") {
+      const outrosResponsaveis = await executarConsultaNaConexao(
+        conexao,
+        `SELECT id
+           FROM responsavel_paciente
+          WHERE paciente_id = ? AND responsavel_id <> ?
+          LIMIT 1`,
+        [pacienteId, perfilId],
+      );
+      if (!outrosResponsaveis.length) {
+        const erro = new Error(
+          "O paciente precisa manter ao menos um responsável vinculado.",
+        );
+        erro.status = 409;
+        throw erro;
+      }
+    }
+
+    await executarConsultaNaConexao(
+      conexao,
+      `DELETE FROM ${relacao.tabelaRelacao}
+        WHERE ${relacao.colunaPerfil} = ? AND paciente_id = ?`,
+      [perfilId, pacienteId],
+    );
+
+    await new Promise((resolve, reject) => {
+      conexao.commit((err) => (err ? reject(err) : resolve()));
+    });
+    transacaoIniciada = false;
+
+    return res.json({ message: "Perfil desvinculado do paciente." });
+  } catch (error) {
+    if (transacaoIniciada) {
+      await new Promise((resolve) => conexao.rollback(() => resolve()));
+    }
+    if (error.status) {
+      return res.status(error.status).json({ error: error.message });
+    }
+    console.error("Erro ao desvincular perfil do paciente:", error);
+    return res.status(500).json({ error: "Erro ao desvincular perfil." });
+  } finally {
+    if (conexao) conexao.release();
+  }
 }
 
 async function atualizarPaciente(req, res) {
@@ -1763,6 +2228,10 @@ module.exports = {
   cadastrar,
   getPacientes,
   getPaciente,
+  getVinculosPaciente,
+  getPerfisDisponiveis,
+  vincularPerfilPaciente,
+  desvincularPerfilPaciente,
   atualizarPaciente,
   excluirPaciente,
   cadastrarPaciente,

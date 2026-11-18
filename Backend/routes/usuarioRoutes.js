@@ -40,6 +40,26 @@ router.delete(
   usuarioController.excluirPaciente,
 );
 router.get("/pacientes/:id", verificarToken, usuarioController.getPaciente);
+router.get(
+  "/pacientes/:id/vinculos",
+  verificarToken,
+  usuarioController.getVinculosPaciente,
+);
+router.get(
+  "/pacientes/:id/perfis-disponiveis",
+  verificarToken,
+  usuarioController.getPerfisDisponiveis,
+);
+router.post(
+  "/pacientes/:id/vinculos",
+  verificarToken,
+  usuarioController.vincularPerfilPaciente,
+);
+router.delete(
+  "/pacientes/:id/vinculos/:tipo/:perfilId",
+  verificarToken,
+  usuarioController.desvincularPerfilPaciente,
+);
 router.get("/get-pacientes", verificarToken, usuarioController.getPacientes);
 router.get(
   "/pacientes/:id/medicamentos",

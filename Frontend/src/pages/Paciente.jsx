@@ -12,6 +12,7 @@ import {
   Save,
   Trash2,
   UserRound,
+  UsersRound,
   X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -21,6 +22,7 @@ import MedicamentosPaciente from "../components/MedicamentosPaciente";
 import ConsultasPaciente from "../components/ConsultasPaciente";
 import TarefasPaciente from "../components/TarefasPaciente";
 import DiarioPaciente from "../components/DiarioPaciente";
+import CuidadoresPaciente from "../components/CuidadoresPaciente";
 import {
   CabecalhoMarca,
   CreditoLaboratorio,
@@ -28,6 +30,7 @@ import {
 
 const abas = [
   { id: "perfil", nome: "Resumo", Icone: ContactRound },
+  { id: "cuidadores", nome: "Cuidadores", Icone: UsersRound },
   { id: "medicamentos", nome: "Medicamentos", Icone: Pill },
   { id: "tarefas", nome: "Tarefas", Icone: CheckSquare },
   { id: "diario", nome: "Diário", Icone: BookOpenText },
@@ -643,6 +646,8 @@ function Paciente() {
                 </dl>
               )}
             </section>
+          ) : aba === "cuidadores" ? (
+            <CuidadoresPaciente key={id} pacienteId={id} />
           ) : aba === "medicamentos" ? (
             <MedicamentosPaciente
               pacienteId={id}
