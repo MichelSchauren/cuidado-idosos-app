@@ -112,91 +112,93 @@ function DiarioPaciente({ pacienteId }) {
         </p>
       )}
 
-      <form
-        onSubmit={adicionarRegistro}
-        className="border-b border-slate-200 pb-6"
-      >
-        <h3 className="text-sm font-semibold text-slate-800">Novo registro</h3>
-        <label className="mt-3 block text-sm font-medium text-slate-700">
-          Título
-          <input
-            required
-            maxLength={150}
-            value={titulo}
-            onChange={(event) => setTitulo(event.target.value)}
-            className="mt-1.5 w-full rounded-lg border border-slate-200 px-3.5 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-            placeholder="Ex.: Apetite no almoço"
-          />
-        </label>
-        <label className="mt-4 block text-sm font-medium text-slate-700">
-          Descrição{" "}
-          <span className="font-normal text-slate-400">(opcional)</span>
-          <textarea
-            rows={3}
-            value={descricao}
-            onChange={(event) => setDescricao(event.target.value)}
-            className="mt-1.5 w-full resize-y rounded-lg border border-slate-200 px-3.5 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-            placeholder="Descreva a observação"
-          />
-        </label>
-        <button
-          type="submit"
-          disabled={salvando}
-          className="mt-4 inline-flex items-center gap-2 rounded-lg bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-wait disabled:opacity-60"
+      <div className="grid items-start gap-6 lg:grid-cols-2">
+        <form
+          onSubmit={adicionarRegistro}
+          className="border-b border-slate-200 pb-6"
         >
-          {salvando ? (
-            <LoaderCircle className="h-4 w-4 animate-spin" />
-          ) : (
-            <Plus className="h-4 w-4" />
-          )}
-          {salvando ? "Salvando..." : "Adicionar ao diário"}
-        </button>
-      </form>
+          <h3 className="text-sm font-semibold text-slate-800">Novo registro</h3>
+          <label className="mt-3 block text-sm font-medium text-slate-700">
+            Título
+            <input
+              required
+              maxLength={150}
+              value={titulo}
+              onChange={(event) => setTitulo(event.target.value)}
+              className="mt-1.5 w-full rounded-lg border border-slate-200 px-3.5 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+              placeholder="Ex.: Apetite no almoço"
+            />
+          </label>
+          <label className="mt-4 block text-sm font-medium text-slate-700">
+            Descrição{" "}
+            <span className="font-normal text-slate-400">(opcional)</span>
+            <textarea
+              rows={3}
+              value={descricao}
+              onChange={(event) => setDescricao(event.target.value)}
+              className="mt-1.5 w-full resize-y rounded-lg border border-slate-200 px-3.5 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+              placeholder="Descreva a observação"
+            />
+          </label>
+          <button
+            type="submit"
+            disabled={salvando}
+            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-wait disabled:opacity-60"
+          >
+            {salvando ? (
+              <LoaderCircle className="h-4 w-4 animate-spin" />
+            ) : (
+              <Plus className="h-4 w-4" />
+            )}
+            {salvando ? "Salvando..." : "Adicionar ao diário"}
+          </button>
+        </form>
 
-      <div>
-        <h3 className="text-sm font-semibold text-slate-800">
-          Registros anteriores
-        </h3>
-        {carregando ? (
-          <div className="mt-3 h-36 animate-pulse rounded-lg bg-slate-100" />
-        ) : registros.length === 0 ? (
-          <div className="py-10 text-center">
-            <BookOpenText className="mx-auto h-8 w-8 text-slate-300" />
-            <p className="mt-3 font-semibold text-slate-700">
-              Ainda não há registros
-            </p>
-            <p className="mt-1 text-sm text-slate-500">
-              As anotações adicionadas aparecerão aqui.
-            </p>
-          </div>
-        ) : (
-          <ol className="mt-2 divide-y divide-slate-100">
-            {registros.map((registro) => (
-              <li key={registro.id} className="py-4">
-                <article>
-                  <h4 className="break-words text-sm font-semibold text-slate-900">
-                    {registro.titulo}
-                  </h4>
-                  {registro.descricao && (
-                    <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6 text-slate-700">
-                      {registro.descricao}
+        <div>
+          <h3 className="text-sm font-semibold text-slate-800">
+            Registros anteriores
+          </h3>
+          {carregando ? (
+            <div className="mt-3 h-36 animate-pulse rounded-lg bg-slate-100" />
+          ) : registros.length === 0 ? (
+            <div className="py-10 text-center">
+              <BookOpenText className="mx-auto h-8 w-8 text-slate-300" />
+              <p className="mt-3 font-semibold text-slate-700">
+                Ainda não há registros
+              </p>
+              <p className="mt-1 text-sm text-slate-500">
+                As anotações adicionadas aparecerão aqui.
+              </p>
+            </div>
+          ) : (
+            <ol className="mt-2 divide-y divide-slate-100">
+              {registros.map((registro) => (
+                <li key={registro.id} className="py-4">
+                  <article>
+                    <h4 className="break-words text-sm font-semibold text-slate-900">
+                      {registro.titulo}
+                    </h4>
+                    {registro.descricao && (
+                      <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6 text-slate-700">
+                        {registro.descricao}
+                      </p>
+                    )}
+                    <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
+                      <span className="inline-flex items-center gap-1">
+                        <CalendarDays className="h-3.5 w-3.5" />
+                        {formatarData(registro.registrado_em)}
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <UserRound className="h-3.5 w-3.5" />
+                        {registro.registrado_por || "Usuário"}
+                      </span>
                     </p>
-                  )}
-                  <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
-                    <span className="inline-flex items-center gap-1">
-                      <CalendarDays className="h-3.5 w-3.5" />
-                      {formatarData(registro.registrado_em)}
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                      <UserRound className="h-3.5 w-3.5" />
-                      {registro.registrado_por || "Usuário"}
-                    </span>
-                  </p>
-                </article>
-              </li>
-            ))}
-          </ol>
-        )}
+                  </article>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
       </div>
     </section>
   );

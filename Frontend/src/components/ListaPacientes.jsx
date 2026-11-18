@@ -2,6 +2,12 @@ import { Phone, ChevronRight, Package } from "lucide-react";
 import { Link } from "react-router-dom";
 import FotoPerfil from "./FotoPerfil";
 
+const classesStatus = {
+  Estável: "border-emerald-200 bg-emerald-50 text-emerald-800",
+  Atenção: "border-amber-200 bg-amber-50 text-amber-800",
+  Crítico: "border-rose-200 bg-rose-50 text-rose-800",
+};
+
 function ListaPacientes({ pacientes }) {
   function calcIdade(nascimento) {
     if (!nascimento) return null;
@@ -43,6 +49,15 @@ function ListaPacientes({ pacientes }) {
                 <h3 className="truncate text-base font-semibold text-slate-900">
                   {paciente.nome}
                 </h3>
+                <span
+                  aria-label={`Estado de atenção: ${paciente.status_atencao || "não informado"}`}
+                  className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${
+                    classesStatus[paciente.status_atencao] ||
+                    "border-slate-200 bg-slate-100 text-slate-700"
+                  }`}
+                >
+                  {paciente.status_atencao || "Status não informado"}
+                </span>
                 {Number(paciente.estoque_baixo) === 1 && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
                     <Package className="h-3 w-3" /> Estoque baixo

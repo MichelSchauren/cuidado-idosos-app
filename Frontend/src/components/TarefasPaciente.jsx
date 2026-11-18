@@ -188,11 +188,16 @@ function TarefasPaciente({ pacienteId, tipoUsuario }) {
         </p>
       )}
 
-      {responsavel && (
-        <form
-          onSubmit={adicionarTarefa}
-          className="border-b border-slate-200 pb-6"
-        >
+      <div
+        className={
+          responsavel ? "grid items-start gap-5 lg:grid-cols-2" : undefined
+        }
+      >
+        {responsavel && (
+          <form
+            onSubmit={adicionarTarefa}
+            className="border-b border-slate-200 pb-6"
+          >
           <h3 className="text-sm font-semibold text-slate-800">
             Adicionar tarefa
           </h3>
@@ -272,86 +277,88 @@ function TarefasPaciente({ pacienteId, tipoUsuario }) {
             )}
             {salvando ? "Salvando..." : "Adicionar tarefa"}
           </button>
-        </form>
-      )}
+          </form>
+        )}
 
-      {carregando ? (
-        <div className="h-44 animate-pulse rounded-lg bg-slate-100" />
-      ) : tarefas.length === 0 ? (
-        <div className="py-12 text-center">
-          <CheckCircle2 className="mx-auto h-8 w-8 text-slate-300" />
-          <p className="mt-3 font-semibold text-slate-700">
-            Nenhuma tarefa para hoje
-          </p>
-          <p className="mt-1 text-sm text-slate-500">
-            Tarefas diárias, semanais e agendadas aparecerão aqui.
-          </p>
-        </div>
-      ) : (
-        <ul className="divide-y divide-slate-100">
-          {tarefas.map((tarefa) => {
-            const tarefaMedicamento = tarefa.origem === "medicamento";
-            const tarefaConsulta = tarefa.origem === "consulta";
-            const desabilitada = tarefaMedicamento && !podeRegistrarDose;
-            return (
-              <li key={tarefa.id} className="flex items-start gap-3 py-4">
-                <input
-                  type="checkbox"
-                  checked={tarefa.concluida}
-                  disabled={
-                    desabilitada || (tarefaMedicamento && tarefa.concluida)
-                  }
-                  onChange={(event) =>
-                    atualizarConclusao(tarefa, event.target.checked)
-                  }
-                  className="mt-1 h-5 w-5 shrink-0 accent-emerald-700 disabled:cursor-not-allowed"
-                  aria-label={`Marcar ${tarefa.titulo} como concluída`}
-                />
-                <span className="min-w-0 flex-1">
-                  <span
-                    className={`block text-sm font-semibold ${tarefa.concluida ? "text-slate-400 line-through" : "text-slate-800"}`}
-                  >
-                    {tarefa.titulo}
-                  </span>
-                  {tarefa.descricao && (
-                    <span className="mt-1 block whitespace-pre-wrap text-sm text-slate-500">
-                      {tarefa.descricao}
+        {carregando ? (
+          <div className="h-44 animate-pulse rounded-lg bg-slate-100" />
+        ) : tarefas.length === 0 ? (
+          <div className="py-12 text-center">
+            <CheckCircle2 className="mx-auto h-8 w-8 text-slate-300" />
+            <p className="mt-3 font-semibold text-slate-700">
+              Nenhuma tarefa para hoje
+            </p>
+            <p className="mt-1 text-sm text-slate-500">
+              Tarefas diárias, semanais e agendadas aparecerão aqui.
+            </p>
+          </div>
+        ) : (
+          <ul className="divide-y divide-slate-100">
+            {tarefas.map((tarefa) => {
+              const tarefaMedicamento = tarefa.origem === "medicamento";
+              const tarefaConsulta = tarefa.origem === "consulta";
+              const desabilitada = tarefaMedicamento && !podeRegistrarDose;
+              return (
+                <li key={tarefa.id} className="flex items-start gap-3 py-4">
+                  <input
+                    type="checkbox"
+                    checked={tarefa.concluida}
+                    disabled={
+                      desabilitada || (tarefaMedicamento && tarefa.concluida)
+                    }
+                    onChange={(event) =>
+                      atualizarConclusao(tarefa, event.target.checked)
+                    }
+                    className="mt-1 h-5 w-5 shrink-0 accent-emerald-700 disabled:cursor-not-allowed"
+                    aria-label={`Marcar ${tarefa.titulo} como concluída`}
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span
+                      className={`block text-sm font-semibold ${tarefa.concluida ? "text-slate-400 line-through" : "text-slate-800"}`}
+                    >
+                      {tarefa.titulo}
                     </span>
-                  )}
-                  <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
-                    <span className="inline-flex items-center gap-1">
-                      <Repeat2 className="h-3.5 w-3.5" />
-                      {tarefaMedicamento
-                        ? "Medicamento"
-                        : tarefaConsulta
-                          ? "Consulta"
-                        : tarefa.tipo === "diaria"
-                          ? "Diária"
-                          : tarefa.tipo === "semanal"
-                            ? "Semanal"
-                            : "Agendada"}
-                    </span>
-                    {tarefa.horario && (
+                    {tarefa.descricao && (
+                      <span className="mt-1 block whitespace-pre-wrap text-sm text-slate-500">
+                        {tarefa.descricao}
+                      </span>
+                    )}
+                    <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
                       <span className="inline-flex items-center gap-1">
-                        <Clock3 className="h-3.5 w-3.5" />
-                        {String(tarefa.horario).slice(0, 5)}
+                        <Repeat2 className="h-3.5 w-3.5" />
+                        {tarefaMedicamento
+                          ? "Medicamento"
+                          : tarefaConsulta
+                            ? "Consulta"
+                            : tarefa.tipo === "diaria"
+                              ? "Diária"
+                              : tarefa.tipo === "semanal"
+                                ? "Semanal"
+                                : "Agendada"}
                       </span>
-                    )}
-                    {desabilitada && (
-                      <span>
-                        Somente o responsável ou cuidador pode registrar a dose.
-                      </span>
-                    )}
+                      {tarefa.horario && (
+                        <span className="inline-flex items-center gap-1">
+                          <Clock3 className="h-3.5 w-3.5" />
+                          {String(tarefa.horario).slice(0, 5)}
+                        </span>
+                      )}
+                      {desabilitada && (
+                        <span>
+                          Somente o responsável ou cuidador pode registrar a
+                          dose.
+                        </span>
+                      )}
+                    </span>
                   </span>
-                </span>
-                {tarefa.concluida && (
-                  <Check className="mt-1 h-4 w-4 shrink-0 text-emerald-700" />
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
+                  {tarefa.concluida && (
+                    <Check className="mt-1 h-4 w-4 shrink-0 text-emerald-700" />
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
     </section>
   );
 }

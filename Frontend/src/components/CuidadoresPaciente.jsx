@@ -309,17 +309,6 @@ function CuidadoresPaciente({ pacienteId }) {
           </p>
         </div>
 
-        <div className="mb-5 flex items-start gap-2 rounded-xl border border-sky-100 bg-sky-50 px-3 py-2.5 text-xs text-sky-800">
-          <Info className="mt-0.5 h-4 w-4 shrink-0" />
-          <p>
-            {vinculos.podeGerenciar
-              ? vinculos.podeVincularCuidador
-                ? "Informe ao menos 2 caracteres no nome. Os demais filtros refinam a busca."
-                : "Você pode vincular responsáveis. Sua permissão atual não permite vincular cuidadores."
-              : "Somente um responsável com permissão de edição pode pesquisar e gerenciar vínculos."}
-          </p>
-        </div>
-
         {erroVinculos && (
           <div
             role="alert"

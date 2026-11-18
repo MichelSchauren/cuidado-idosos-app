@@ -129,11 +129,16 @@ function ConsultasPaciente({ pacienteId, tipoUsuario }) {
         </p>
       )}
 
-      {responsavel && (
-        <form
-          onSubmit={agendarConsulta}
-          className="border-b border-slate-200 pb-6"
-        >
+      <div
+        className={
+          responsavel ? "grid items-start gap-5 lg:grid-cols-2" : undefined
+        }
+      >
+        {responsavel && (
+          <form
+            onSubmit={agendarConsulta}
+            className="border-b border-slate-200 pb-6"
+          >
           <h3 className="text-sm font-semibold text-slate-800">
             Agendar consulta
           </h3>
@@ -214,54 +219,55 @@ function ConsultasPaciente({ pacienteId, tipoUsuario }) {
             )}
             {salvando ? "Agendando..." : "Agendar consulta"}
           </button>
-        </form>
-      )}
+          </form>
+        )}
 
-      {carregando ? (
-        <div className="h-44 animate-pulse rounded-lg bg-slate-100" />
-      ) : consultas.length === 0 ? (
-        <div className="py-10 text-center">
-          <CalendarDays className="mx-auto h-8 w-8 text-slate-300" />
-          <p className="mt-3 font-semibold text-slate-700">
-            Nenhuma consulta agendada
-          </p>
-        </div>
-      ) : (
-        <ul className="divide-y divide-slate-100">
-          {consultas.map((consulta) => (
-            <li key={consulta.id} className="py-4">
-              <h3 className="font-semibold text-slate-900">
-                {consulta.especialidade}
-              </h3>
-              <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
-                <div className="flex items-center gap-2 text-slate-600">
-                  <UserRound className="h-4 w-4 shrink-0 text-emerald-700" />
-                  <dt className="sr-only">Médico</dt>
-                  <dd>{consulta.medico}</dd>
-                </div>
-                <div className="flex items-center gap-2 text-slate-600">
-                  <MapPin className="h-4 w-4 shrink-0 text-emerald-700" />
-                  <dt className="sr-only">Local</dt>
-                  <dd>{consulta.local}</dd>
-                </div>
-                <div className="flex items-center gap-2 text-slate-600 sm:col-span-2">
-                  <Clock3 className="h-4 w-4 shrink-0 text-emerald-700" />
-                  <dt className="sr-only">Data e hora</dt>
-                  <dd>{formatarDataHora(consulta.data_hora)}</dd>
-                </div>
-              </dl>
-              {consulta.observacoes && (
-                <p className="mt-3 whitespace-pre-wrap text-sm text-slate-600">
-                  <span className="font-medium text-slate-700">
-                    Observações:{" "}
-                  </span>
-                  {consulta.observacoes}
-                </p>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+        {carregando ? (
+          <div className="h-44 animate-pulse rounded-lg bg-slate-100" />
+        ) : consultas.length === 0 ? (
+          <div className="py-10 text-center">
+            <CalendarDays className="mx-auto h-8 w-8 text-slate-300" />
+            <p className="mt-3 font-semibold text-slate-700">
+              Nenhuma consulta agendada
+            </p>
+          </div>
+        ) : (
+          <ul className="divide-y divide-slate-100">
+            {consultas.map((consulta) => (
+              <li key={consulta.id} className="py-4">
+                <h3 className="font-semibold text-slate-900">
+                  {consulta.especialidade}
+                </h3>
+                <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+                  <div className="flex items-center gap-2 text-slate-600">
+                    <UserRound className="h-4 w-4 shrink-0 text-emerald-700" />
+                    <dt className="sr-only">Médico</dt>
+                    <dd>{consulta.medico}</dd>
+                  </div>
+                  <div className="flex items-center gap-2 text-slate-600">
+                    <MapPin className="h-4 w-4 shrink-0 text-emerald-700" />
+                    <dt className="sr-only">Local</dt>
+                    <dd>{consulta.local}</dd>
+                  </div>
+                  <div className="flex items-center gap-2 text-slate-600 sm:col-span-2">
+                    <Clock3 className="h-4 w-4 shrink-0 text-emerald-700" />
+                    <dt className="sr-only">Data e hora</dt>
+                    <dd>{formatarDataHora(consulta.data_hora)}</dd>
+                  </div>
+                </dl>
+                {consulta.observacoes && (
+                  <p className="mt-3 whitespace-pre-wrap text-sm text-slate-600">
+                    <span className="font-medium text-slate-700">
+                      Observações:{" "}
+                    </span>
+                    {consulta.observacoes}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </section>
   );
 }
